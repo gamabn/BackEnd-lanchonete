@@ -37,6 +37,9 @@ import { DashboardController } from "./controller/order/DashboardController";
 import { GraficController } from "./controller/order/GraficController";
 
 
+import { GetChatController } from "./controller/message/GetChatController";
+import { MessageGetController } from "./controller/message/ListMessageController";
+import { MessagePostController } from "./controller/message/MessaPostController";
 
 //import { CreateOrderItemController } from "./controller/order_item/CreateOrderItemController"
 // import { OrderPostController } from "./controller/order_item/CreateOrderItemController";
@@ -66,6 +69,10 @@ router.delete('/user/delete', isAuthentication, new DeleteClientController().han
 emailRoutes.post('/send-test-email', new SendTestEmailController().handle)
 router.post('/change-password', new ChangePasswordController().handle)
 
+// Rotas deMensagem
+router.get('/chat/:order_id', new GetChatController().handle)
+router.get('/message/:chat_id', new MessageGetController().handle)
+router.post('/message', new MessagePostController().handle)
 
 //---Rotas de Produtos
 router.get('/product', isAuthentication, new GetProductController().handle)
@@ -93,8 +100,6 @@ router.get('/grafic',isAuthentication, new GraficController().handle)
 router.post('/order_item', new CreateOrderItemController().handle)
 router.delete('/order_item', new DeleteOrderController().handle)
 router.get('/order_item',isAuthentication, new GetOrdemItemController().handle)
-
-
 
 
 

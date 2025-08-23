@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { ListMessagesService } from "../../service/message/ListMessagesService";
 
+
+
 class MessageGetController {
   async handle(req: Request, res: Response) {
     const { chat_id } = req.params;
@@ -12,6 +14,7 @@ class MessageGetController {
     try {
       const listMessagesService = new ListMessagesService();
       const messages = await listMessagesService.execute(chat_id);
+      
 
       return res.status(200).json(messages.rows);
     } catch (error) {

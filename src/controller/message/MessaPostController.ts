@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { CreateMessageService } from "../../service/message/CreateMessageService";
+import { io } from "../../server";
 
 
 class MessagePostController {
@@ -18,6 +19,8 @@ class MessagePostController {
         sender_id,   // uuid do cliente ou restaurante
         message,
       });
+      console.log("Nova mensagem emitida:", newMessage);
+     io.to(chat_id).emit("newMessage", newMessage.rows[0]);
 
       return res.status(201).json(newMessage);
     } catch (error) {
