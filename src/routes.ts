@@ -13,6 +13,7 @@ import { DetailStoreController } from "./controller/user/DetailStoreController";
 import { EditStoreController } from "./controller/user/EditStoreController";
 import { ImageStoreController } from "./controller/user/ImageStoreController";
 import { EditStatusController } from "./controller/user/EditStatusController";
+import { AuthResetController } from "./controller/user/AuthResetController";
 
 import { isAuthentication } from "./middlewares/isAuthentication";
 
@@ -40,6 +41,8 @@ import { GraficController } from "./controller/order/GraficController";
 import { GetChatController } from "./controller/message/GetChatController";
 import { MessageGetController } from "./controller/message/ListMessageController";
 import { MessagePostController } from "./controller/message/MessaPostController";
+import { GetAllChatController } from "./controller/message/GetAllChatController";
+import { DeleteChatController } from "./controller/message/DeleteChatController";
 
 //import { CreateOrderItemController } from "./controller/order_item/CreateOrderItemController"
 // import { OrderPostController } from "./controller/order_item/CreateOrderItemController";
@@ -63,6 +66,9 @@ router.put('/user/edit', isAuthentication, new EditStoreController().handle)
 router.put('/user/image/:id',upload.single('file'), new ImageStoreController().handle)
 router.patch('/user/status', isAuthentication, new EditStatusController().handle)
 router.delete('/user/delete', isAuthentication, new DeleteClientController().handle)
+router.post('/user/change', new ChangePasswordController().handle)
+router.post('/user/reset-password', new AuthResetController().handle)
+
 
 
 //--Rotas de Email
@@ -70,9 +76,11 @@ emailRoutes.post('/send-test-email', new SendTestEmailController().handle)
 router.post('/change-password', new ChangePasswordController().handle)
 
 // Rotas deMensagem
+router.get('/chat', new GetAllChatController().handle)
 router.get('/chat/:order_id', new GetChatController().handle)
 router.get('/message/:chat_id', new MessageGetController().handle)
 router.post('/message', new MessagePostController().handle)
+router.delete('/chat/:order_id', new DeleteChatController().handle)
 
 //---Rotas de Produtos
 router.get('/product', isAuthentication, new GetProductController().handle)

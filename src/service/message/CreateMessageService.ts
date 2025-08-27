@@ -6,17 +6,18 @@ interface IMessage {
   sender_type: "customer" | "restaurant";
   sender_id: string;
   message: string;
+  name: string;
 }
 
 class CreateMessageService {
-  async execute({ chat_id, sender_type, sender_id, message }: IMessage) {
+  async execute({ chat_id, sender_type, sender_id, message, name }: IMessage) {
     const query = `
-      INSERT INTO chat_messages (chat_id, sender_type, sender_id, message)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO chat_messages (chat_id, sender_type, sender_id, message, name)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *;
     `;
 
-    const values = [chat_id, sender_type, sender_id, message];
+    const values = [chat_id, sender_type, sender_id, message, name];
     return await pool.query(query, values);
   }
 }

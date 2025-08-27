@@ -60,11 +60,11 @@ class OrderSalesService {
            // console.log('Order do pedido:',order)
 
             const chatQuery = `
-                INSERT INTO chats (order_id)
-                VALUES ($1)
+                INSERT INTO chats (order_id,restaurant_id)
+                VALUES ($1, $2)
                 RETURNING *;
             `;
-            const chatResult = await client.query(chatQuery, [order.id]);
+            const chatResult = await client.query(chatQuery, [order.id, order.restaurant_id]);
             const chat = chatResult.rows[0];
 
             await client.query('COMMIT');

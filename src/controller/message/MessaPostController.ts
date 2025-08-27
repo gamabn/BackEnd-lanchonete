@@ -5,9 +5,9 @@ import { io } from "../../server";
 
 class MessagePostController {
   async handle(req: Request, res: Response) {
-    const { chat_id, sender_type, sender_id, message } = req.body;
+    const { chat_id, sender_type, sender_id, message, name } = req.body;
 
-    if (!chat_id || !sender_type || !sender_id || !message) {
+    if (!chat_id || !sender_type || !sender_id || !message || !name) {
       return res.status(400).json({ message: "chat_id, sender_type, sender_id e message são obrigatórios." });
     }
 
@@ -18,6 +18,7 @@ class MessagePostController {
         sender_type, // "customer" ou "restaurant"
         sender_id,   // uuid do cliente ou restaurante
         message,
+        name
       });
       console.log("Nova mensagem emitida:", newMessage);
      io.to(chat_id).emit("newMessage", newMessage.rows[0]);
