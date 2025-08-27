@@ -38,9 +38,9 @@ class ChangePasswordService {
     });
 
    // const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`; // frontend
-const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
-
+//const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+//const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER, // importante definir o remetente

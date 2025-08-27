@@ -13,7 +13,9 @@ import { DetailStoreController } from "./controller/user/DetailStoreController";
 import { EditStoreController } from "./controller/user/EditStoreController";
 import { ImageStoreController } from "./controller/user/ImageStoreController";
 import { EditStatusController } from "./controller/user/EditStatusController";
+import { AuthResetValidateController } from "./controller/user/AuthResetValidateController";
 import { AuthResetController } from "./controller/user/AuthResetController";
+
 
 import { isAuthentication } from "./middlewares/isAuthentication";
 
@@ -67,7 +69,11 @@ router.put('/user/image/:id',upload.single('file'), new ImageStoreController().h
 router.patch('/user/status', isAuthentication, new EditStatusController().handle)
 router.delete('/user/delete', isAuthentication, new DeleteClientController().handle)
 router.post('/user/change', new ChangePasswordController().handle)
+//router.post('/auth/reset/validate', new AuthResetController().handle)
+router.post('/auth/reset/validate',new AuthResetController().handle)
+router.get('/user/reset-password', new AuthResetValidateController().handle)
 router.post('/user/reset-password', new AuthResetController().handle)
+
 
 
 
