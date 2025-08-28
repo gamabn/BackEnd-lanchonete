@@ -10,7 +10,7 @@ const app = express()
 const server = createServer(app)
 const io = new Server(server,{
      connectionStateRecovery: {},
-     cors: { origin: "*" }, // Permitir conexões de qualquer frontend
+     cors: { origin: process.env.FRONTEND_URL }, // Apenas o seu frontend pode conectar
 })
 
 io.on("connection", (socket) => {
@@ -32,7 +32,9 @@ io.on("connection", (socket) => {
   });
 });
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: process.env.FRONTEND_URL // Apenas o seu frontend pode fazer requisições
+}))
 
 
 app.use('/email', emailRoutes);
