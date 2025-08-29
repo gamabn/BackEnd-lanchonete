@@ -61,6 +61,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
         message: 'Internal server error.'
     })
 })
-
-server.listen(3333,()=> console.log('Servidor online!') )
+const PORT = process.env.PORT || 3333;
+server.listen(PORT,()=> console.log('Servidor online!') )
 export { io };
