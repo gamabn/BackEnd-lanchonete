@@ -11,14 +11,19 @@ interface ProductRequest {
 
 class CreateProductService {
   async execute({ name, description, price, image_url, public_id, restaurant_id }: ProductRequest) {
-    const product = await pool.query(
-      `INSERT INTO products (name, description, price, image_url, public_id, restaurant_id) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING *`,
-      [name, description, price, image_url, public_id, restaurant_id]
-    );
+    try {
+      const product = await pool.query(
+        `INSERT INTO products (name, description, price, image_url, public_id, restaurant_id) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`,
+        [name, description, price, image_url, public_id, restaurant_id]
+      );
 
-    return product.rows[0];
+      return product.rows[0];
+    } catch (err) {
+      console.error("Erro ao criar produto:", err);
+      throw new Error("Erro ao criar produto");
+    }
   }
 }
 

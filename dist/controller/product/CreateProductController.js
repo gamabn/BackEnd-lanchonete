@@ -11,16 +11,22 @@ class CreateProductController {
         if (!req.file) {
             throw new Error("Erro no upload do arquivo");
         }
-        const uploadResult = await (0, cloudinaryUploader_1.uploadToCloudinary)(req.file.buffer, { folder: "produtos" });
-        const product = await createProductService.execute({
-            name,
-            description,
-            price,
-            image_url: uploadResult.url,
-            public_id: uploadResult.public_id,
-            restaurant_id,
-        });
-        return res.json(product);
+        try {
+            const uploadResult = await (0, cloudinaryUploader_1.uploadToCloudinary)(req.file.buffer, { folder: "produtos" });
+            const product = await createProductService.execute({
+                name,
+                description,
+                price,
+                image_url: uploadResult.url,
+                public_id: uploadResult.public_id,
+                restaurant_id,
+            });
+            return res.json(product);
+        }
+        catch (err) {
+            console.error("Erro ao criar produto:", err);
+            return res.status(500).json({ error: "Erro ao criar produto" });
+        }
     }
 }
 exports.CreateProductController = CreateProductController;

@@ -14,8 +14,8 @@ class CreateProductController{
     if (!req.file) {
       throw new Error("Erro no upload do arquivo");
     }
-
-    const uploadResult = await uploadToCloudinary(req.file.buffer, { folder: "produtos" });
+try{
+ const uploadResult = await uploadToCloudinary(req.file.buffer, { folder: "produtos" });
 
     const product = await createProductService.execute({
       name,
@@ -27,6 +27,11 @@ class CreateProductController{
     });
 
     return res.json(product)
+    }catch(err){
+      console.error("Erro ao criar produto:", err);
+      return res.status(500).json({ error: "Erro ao criar produto" });
+    }
+   
   }
 
 }
