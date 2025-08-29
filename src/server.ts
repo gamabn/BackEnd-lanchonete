@@ -8,10 +8,18 @@ import { Server } from 'socket.io';
 
 const app = express()
 const server = createServer(app)
-const io = new Server(server,{
-     connectionStateRecovery: {},
-     cors: { origin: process.env.FRONTEND_URL }, // Apenas o seu frontend pode conectar
-})
+//const io = new Server(server,{
+ //    connectionStateRecovery: {},
+ //    cors: { origin: process.env.FRONTEND_URL }, // Apenas o seu frontend pode conectar
+//})
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  },
+  transports: ["websocket", "polling"], // 🔹 garante compatibilidade no Render
+});
 
 io.on("connection", (socket) => {
   console.log("Cliente conectado:", socket.id);

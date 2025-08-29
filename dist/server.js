@@ -13,9 +13,17 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
+//const io = new Server(server,{
+//    connectionStateRecovery: {},
+//    cors: { origin: process.env.FRONTEND_URL }, // Apenas o seu frontend pode conectar
+//})
 const io = new socket_io_1.Server(server, {
-    connectionStateRecovery: {},
-    cors: { origin: "*" }, // Permitir conexões de qualquer frontend
+    cors: {
+        origin: process.env.FRONTEND_URL || "*",
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    },
+    transports: ["websocket", "polling"], // 🔹 garante compatibilidade no Render
 });
 exports.io = io;
 io.on("connection", (socket) => {
@@ -34,7 +42,12 @@ io.on("connection", (socket) => {
     });
 });
 app.use(express_1.default.json());
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    // origin: process.env.FRONTEND_URL // Apenas o seu frontend pode fazer requisições
+}));
 app.use('/email', routes_1.emailRoutes);
 app.use(routes_1.router);
 app.use('/files', express_1.default.static(path_1.default.resolve(__dirname, '..', 'tmp')));
@@ -51,4 +64,5 @@ app.use((err, req, res, next) => {
         message: 'Internal server error.'
     });
 });
-server.listen(3333, () => console.log('Servidor online!'));
+const PORT = process.env.PORT || 3333;
+server.listen(PORT, () => console.log('Servidor online!'));
