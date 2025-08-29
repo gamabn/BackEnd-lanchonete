@@ -33,7 +33,10 @@ io.on("connection", (socket) => {
 });
 app.use(express.json())
 app.use(cors({
-    origin: process.env.FRONTEND_URL // Apenas o seu frontend pode fazer requisições
+   origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+   // origin: process.env.FRONTEND_URL // Apenas o seu frontend pode fazer requisições
 }))
 
 
