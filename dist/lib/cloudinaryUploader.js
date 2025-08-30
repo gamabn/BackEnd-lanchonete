@@ -15,15 +15,17 @@ console.log("Cloudinary vars:", {
 // -----------------------
 // Upload de imagem
 // -----------------------
-const uploadToCloudinary = (buffer, options // permite folder, tags etc
-) => {
+const uploadToCloudinary = (buffer, options) => {
     return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary_1.v2.uploader.upload_stream({ resource_type: "auto", ...options }, (error, result) => {
+        cloudinary_1.v2.uploader.upload_stream({
+            resource_type: "auto",
+            folder: "produtos", // force o folder aqui no backend
+            ...options,
+        }, (error, result) => {
             if (error || !result)
                 return reject(error || new Error("Falha no upload para o Cloudinary"));
             resolve(result);
-        });
-        uploadStream.end(buffer);
+        }).end(buffer);
     });
 };
 exports.uploadToCloudinary = uploadToCloudinary;
