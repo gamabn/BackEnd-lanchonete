@@ -14,6 +14,7 @@ class CreateProductController{
     if (!req.file) {
       throw new Error("Erro no upload do arquivo");
     }
+    console.log("Arquivo recebido:", req.file?.originalname, req.file?.size);
 try{
  const uploadResult = await uploadToCloudinary(req.file.buffer, { folder: "produtos" });
 

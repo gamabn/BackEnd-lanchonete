@@ -3,14 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateCloudinaryImage = exports.deleteFromCloudinary = exports.uploadToCloudinary = void 0;
 const cloudinary_1 = require("cloudinary");
 cloudinary_1.v2.config({
-    cloud_name: process.env.CLAUDINARY_NAME,
-    api_key: process.env.CLAUDINARY_KEY,
-    api_secret: process.env.CLAUDINARY_SECRET,
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET,
 });
 console.log("Cloudinary vars:", {
-    name: process.env.CLAUDINARY_NAME,
-    key: process.env.CLAUDINARY_KEY,
-    secret: process.env.CLAUDINARY_SECRET,
+    name: process.env.CLOUDINARY_NAME,
+    key: process.env.CLOUDINARY_KEY,
+    secret: process.env.CLOUDINARY_SECRET,
 });
 // -----------------------
 // Upload de imagem
