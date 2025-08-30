@@ -5,7 +5,11 @@ cloudinary.config({
   api_key: process.env.CLAUDINARY_KEY,
   api_secret: process.env.CLAUDINARY_SECRET,
 });
-
+console.log("Cloudinary vars:", {
+  name: process.env.CLAUDINARY_NAME,
+  key: process.env.CLAUDINARY_KEY,
+  secret: process.env.CLAUDINARY_SECRET,
+});
 // -----------------------
 // Upload de imagem
 // -----------------------
@@ -13,6 +17,7 @@ export const uploadToCloudinary = (
   buffer: Buffer,
   options?: Record<string, any> // permite folder, tags etc
 ): Promise<UploadApiResponse> => {
+  
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       { resource_type: "auto", ...options },

@@ -79,6 +79,7 @@ io.on("connection", (socket) => {
         console.log("Cliente desconectado:", socket.id);
     });
 });
+//==============================================
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
     origin: "*",
