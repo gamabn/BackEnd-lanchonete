@@ -25,7 +25,8 @@ export const uploadToCloudinary = (
         ...options,
       },
       (error, result) => {
-        if (error || !result) return reject(error || new Error("Falha no upload para o Cloudinary"));
+        if (error) return reject(error);
+        if (!result) return reject(new Error("Falha no upload para o Cloudinary: Nenhum resultado retornado."));
         resolve(result);
       }
     ).end(buffer);
@@ -37,8 +38,9 @@ export const uploadToCloudinary = (
 // -----------------------
 export const deleteFromCloudinary = (publicId: string): Promise<{ result: string }> => {
   return new Promise((resolve, reject) => {
-    cloudinary.uploader.destroy(publicId, { resource_type: "image" }, (error, result) => {
-      if (error) return reject(error);
+    cloudinary.uploader.destroy(publicId, { resource_type: "image" }, (error, result: any) => {
+      // O tipo de 'result' pode ser { result: 'ok' } ou { result: 'not found' } ou undefined em caso de erro.
+      if (error || !result) return reject(error || new Error(`Falha ao deletar a imagem com public_id: ${publicId}`));
       resolve(result);
     });
   });
