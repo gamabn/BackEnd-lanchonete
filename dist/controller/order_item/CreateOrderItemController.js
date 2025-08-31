@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateOrderItemController = void 0;
 const CreateOrderItemSerice_1 = require("../../service/order_item/CreateOrderItemSerice");
+const server_1 = require("../../server");
 class CreateOrderItemController {
     async handle(req, res) {
         // Aceita tanto array direto quanto { items: [...] }
@@ -13,6 +14,8 @@ class CreateOrderItemController {
         try {
             const service = new CreateOrderItemSerice_1.CreateOrderItemService();
             const insertedItems = await service.execute(items);
+            server_1.io.emit("newOrderItem", insertedItems);
+            console.log("Emitindo newOrderItem:", insertedItems);
             return res.status(201).json(insertedItems);
         }
         catch (error) {
