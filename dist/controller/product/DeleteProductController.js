@@ -8,6 +8,8 @@ class DeleteProductController {
         const restaurant_id = req.user_id;
         const deleteStoreService = new DeleteProductService_1.DeleteProductService();
         const product = await deleteStoreService.execute(product_id, restaurant_id);
+        if (!product)
+            return res.status(404).json({ error: "Produto não encontrado." });
         return res.json(product);
     }
 }

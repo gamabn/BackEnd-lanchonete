@@ -6,8 +6,6 @@ class EditStoreController {
     async handle(req, res) {
         const { name, email, phone, city, neighborhood, street, number } = req.body;
         const user_id = req.user_id; // Obtido do middleware de autenticação
-        console.log("neighborhood recebido:", neighborhood);
-        console.log({ name, email, phone, city, neighborhood, street, number });
         const editStoreService = new EditStoreService_1.EditStoreService();
         const updatedStore = await editStoreService.execute({
             id: user_id,
@@ -19,6 +17,8 @@ class EditStoreController {
             street,
             number,
         });
+        if (!updatedStore)
+            return res.status(404).json({ error: "Estabelecimento não encontrado." });
         return res.json(updatedStore);
     }
 }

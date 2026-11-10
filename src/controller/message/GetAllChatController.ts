@@ -1,16 +1,13 @@
 import { Request, Response } from "express";
 import { GetAllChatService } from "../../service/message/GetAllChatService";
 
-class GetAllChatController{
-
+class GetAllChatController {
   async handle(req: Request, res: Response) {
-   
-
-   
-
     try {
       const getAllChatService = new GetAllChatService();
-      const chats = await getAllChatService.execute();
+      const chats = await getAllChatService.execute(req.user_id);
+
+      res.set("Cache-Control", "no-store");
 
       return res.status(200).json(chats);
     } catch (error) {
@@ -18,6 +15,5 @@ class GetAllChatController{
       return res.status(500).json({ message: "Erro interno no servidor." });
     }
   }
-
 }
-export { GetAllChatController }
+export { GetAllChatController };

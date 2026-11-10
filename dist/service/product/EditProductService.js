@@ -3,11 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EditProductService = void 0;
 const database_1 = require("../../database");
 class EditProductService {
+    async findOwned(product_id, restaurant_id) {
+        const result = await database_1.pool.query("SELECT id, public_id FROM products WHERE id = $1 AND restaurant_id = $2", [product_id, restaurant_id]);
+        return result.rows[0];
+    }
     async execute({ product_id, name, description, price, image_url, public_id, restaurant_id, }) {
         // 1. Busca o produto existente
         const currentProductResult = await database_1.pool.query("SELECT * FROM products WHERE id = $1 AND restaurant_id = $2", [product_id, restaurant_id]);
         if (currentProductResult.rows.length === 0) {
-            throw new Error("Produto não encontrado ou não pertence ao restaurante.");
+            return undefined;
         }
         const currentProduct = currentProductResult.rows[0];
         // 2. Atualiza apenas campos informados

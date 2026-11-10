@@ -21,7 +21,7 @@ class CreateStoreService {
   if(!email){
     throw new Error('Email incorreto')
   }
-  const existEmail = await pool.query('SELECT * FROM restaurants WHERE email = $1', [email])
+  const existEmail = await pool.query('SELECT id FROM restaurants WHERE email = $1', [email])
 
   if(existEmail.rows.length > 0){
     throw new Error('Email já cadastrado')
@@ -37,7 +37,7 @@ if (!validator.isEmail(email)) {
       `INSERT INTO restaurants 
         (name, email, password, phone, city, neighborhood, street, "number") 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-       RETURNING *`,
+       RETURNING id, name, phone, city, neighborhood, street, "number", image_url, status`,
       [name, email, hashedPassword, phone, city,  neighborhood, street, number]
     );
 

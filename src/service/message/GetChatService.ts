@@ -17,7 +17,6 @@ class GetChatService {
     `;
 
     const result = await pool.query(query, [order_id]);
-    console.log(result.rows[0]);
     return result.rows[0];
   }
 }

@@ -6,7 +6,8 @@ class GetAllChatController {
     async handle(req, res) {
         try {
             const getAllChatService = new GetAllChatService_1.GetAllChatService();
-            const chats = await getAllChatService.execute();
+            const chats = await getAllChatService.execute(req.user_id);
+            res.set("Cache-Control", "no-store");
             return res.status(200).json(chats);
         }
         catch (error) {

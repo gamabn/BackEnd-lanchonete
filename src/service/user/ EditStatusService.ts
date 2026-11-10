@@ -6,7 +6,7 @@ class EditStatusService{
     const updatedStore = await pool.query(
       `UPDATE restaurants SET 
         status = $1
-      WHERE id = $2 RETURNING *`,
+      WHERE id = $2 RETURNING id, status`,
       [status, id]
     );
 

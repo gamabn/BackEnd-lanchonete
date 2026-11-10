@@ -13,7 +13,7 @@ class EditStoreService {
         neighborhood = $5,
         street = $6,
         number = $7
-      WHERE id = $8 RETURNING *`, [name, email, phone, city, neighborhood, street, number, id]);
+      WHERE id = $8 RETURNING id, name, email, phone, city, neighborhood, street, "number", image_url, status`, [name, email, phone, city, neighborhood, street, number, id]);
         return updatedStore.rows[0];
     }
 }

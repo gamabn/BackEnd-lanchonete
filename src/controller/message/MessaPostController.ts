@@ -1,14 +1,21 @@
 import { Request, Response } from "express";
 import { CreateMessageService } from "../../service/message/CreateMessageService";
+import { chatRoom } from "../../socket/chat";
 import { io } from "../../server";
 
 
 class MessagePostController {
   async handle(req: Request, res: Response) {
-    const { chat_id, sender_type, sender_id, message, name } = req.body;
+    const { message } = req.body;
+    const chat = res.locals.authorizedChat as { chat_id: string; customer_name: string; restaurant_name: string };
+    const actor = res.locals.chatActor as { type: "customer" | "restaurant"; id: string };
+    const chat_id = chat.chat_id;
+    const sender_type = actor.type;
+    const sender_id = actor.id;
+    const name = actor.type === "customer" ? chat.customer_name : chat.restaurant_name;
 
-    if (!chat_id || !sender_type || !sender_id || !message || !name) {
-      return res.status(400).json({ message: "chat_id, sender_type, sender_id e message são obrigatórios." });
+    if (typeof message !== "string" || !message.trim() || message.length > 10000) {
+      return res.status(400).json({ message: "Mensagem obrigatória, com até 10000 caracteres." });
     }
 
     try {
@@ -20,8 +27,7 @@ class MessagePostController {
         message,
         name
       });
-      console.log("Nova mensagem emitida:", newMessage);
-     io.to(chat_id).emit("newMessage", newMessage.rows[0]);
+     io.to(chatRoom(chat_id)).emit("newMessage", newMessage.rows[0]);
 
       return res.status(201).json(newMessage);
     } catch (error) {

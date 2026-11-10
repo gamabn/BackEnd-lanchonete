@@ -7,18 +7,13 @@ cloudinary_1.v2.config({
     api_key: process.env.CLOUDINARY_KEY,
     api_secret: process.env.CLOUDINARY_SECRET,
 });
-console.log("Cloudinary vars:", {
-    name: process.env.CLOUDINARY_NAME,
-    key: process.env.CLOUDINARY_KEY,
-    secret: process.env.CLOUDINARY_SECRET,
-});
 // -----------------------
 // Upload de imagem
 // -----------------------
 const uploadToCloudinary = (buffer, options) => {
     return new Promise((resolve, reject) => {
         cloudinary_1.v2.uploader.upload_stream({
-            resource_type: "auto",
+            resource_type: "image",
             folder: "produtos", // force o folder aqui no backend
             ...options,
         }, (error, result) => {
@@ -38,9 +33,12 @@ const deleteFromCloudinary = (publicId) => {
     return new Promise((resolve, reject) => {
         cloudinary_1.v2.uploader.destroy(publicId, { resource_type: "image" }, (error, result) => {
             // O tipo de 'result' pode ser { result: 'ok' } ou { result: 'not found' } ou undefined em caso de erro.
-            if (error || !result)
-                return reject(error || new Error(`Falha ao deletar a imagem com public_id: ${publicId}`));
-            resolve(result);
+            if (error)
+                return reject(error);
+            if (!result || typeof result !== "object" || !("result" in result) || typeof result.result !== "string") {
+                return reject(new Error("Resposta inválida ao excluir imagem."));
+            }
+            resolve({ result: result.result });
         });
     });
 };

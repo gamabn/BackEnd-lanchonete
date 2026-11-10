@@ -1,31 +1,14 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { DeleteOrderService } from "../../service/order_item/DeleteOrderService";
-
-
 class DeleteOrderController {
   async handle(req: Request, res: Response) {
-    // É mais comum receber o ID como parâmetro de rota (ex: /order/:id)
-    // mas vamos manter como corpo da requisição para bater com seu frontend.
-    const { id: order_id } = req.body;
-
-    if (!order_id) {
-      return res.status(400).json({ error: 'ID do pedido é obrigatório.' });
-    }
-
-    const deleteOrderService = new DeleteOrderService();
-
+    const { id } = req.body;
+    if (typeof id !== "string" || !id) return res.status(400).json({ error: "Pedido obrigatório." });
     try {
-      const result = await deleteOrderService.execute(order_id as string);
+      const result = await new DeleteOrderService().execute(id, req.user_id);
+      if (!result) return res.status(404).json({ error: "Pedido não encontrado." });
       return res.json(result);
-    } catch (error: any) {
-      // Retorna um erro mais específico se o pedido não for encontrado
-      if (error.message === 'Pedido não encontrado.') {
-        return res.status(404).json({ error: error.message });
-      }
-      // Erro genérico do servidor
-      return res.status(500).json({ error: 'Erro interno ao excluir o pedido.' });
-    }
+    } catch { return res.status(503).json({ error: "Não foi possível excluir o pedido." }); }
   }
 }
-
 export { DeleteOrderController };

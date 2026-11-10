@@ -19,6 +19,9 @@ const EditStatusController_1 = require("./controller/user/EditStatusController")
 const AuthResetValidateController_1 = require("./controller/user/AuthResetValidateController");
 const AuthResetController_1 = require("./controller/user/AuthResetController");
 const isAuthentication_1 = require("./middlewares/isAuthentication");
+const customerAccess_1 = require("./security/customerAccess");
+const chat_1 = require("./socket/chat");
+const orders_1 = require("./socket/orders");
 const CreateProductController_1 = require("./controller/product/CreateProductController");
 const EditProductController_1 = require("./controller/product/EditProductController");
 const DeleteProductController_1 = require("./controller/product/DeleteProductController");
@@ -42,53 +45,65 @@ const DeleteChatController_1 = require("./controller/message/DeleteChatControlle
 const CreateOrderItemController_1 = require("./controller/order_item/CreateOrderItemController");
 const DeleteOrderController_1 = require("./controller/order_item/DeleteOrderController");
 const GetOrdemItemController_1 = require("./controller/order_item/GetOrdemItemController");
+//=============Bairro==============================================
+const bairroController_1 = require("./controller/bairroController/bairroController");
 const emailRoutes = (0, express_1.Router)();
 exports.emailRoutes = emailRoutes;
 const router = (0, express_1.Router)();
 exports.router = router;
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage() });
+router.post("/orders/socket-ticket", isAuthentication_1.isAuthentication, orders_1.createOrdersTicket);
 //--Rotas de User
-router.post('/user', new CreateStoreController_1.CreateUserController().handle);
-router.post('/auth', new AuthStoreController_1.AuthStoreController().handle);
-router.get('/user/:id', new GetIdStoreController_1.GetIdStoreController().handle);
-router.get('/user', new GetStoreController_1.GetStoreController().handle);
-router.get('/me', isAuthentication_1.isAuthentication, new DetailStoreController_1.DetailStoreController().handle);
-router.put('/user/edit', isAuthentication_1.isAuthentication, new EditStoreController_1.EditStoreController().handle);
-router.put('/user/image/:id', upload.single('file'), new ImageStoreController_1.ImageStoreController().handle);
-router.patch('/user/status', isAuthentication_1.isAuthentication, new EditStatusController_1.EditStatusController().handle);
-router.delete('/user/delete', isAuthentication_1.isAuthentication, new DeleteClientController_1.DeleteClientController().handle);
-router.post('/user/change', new ChangePasswordController_1.ChangePasswordController().handle);
+router.post("/user", upload.single("file"), new CreateStoreController_1.CreateUserController().handle);
+router.post("/auth", new AuthStoreController_1.AuthStoreController().handle);
+router.get("/user/:id", new GetIdStoreController_1.GetIdStoreController().handle);
+router.get("/user", new GetStoreController_1.GetStoreController().handle);
+router.get("/me", isAuthentication_1.isAuthentication, new DetailStoreController_1.DetailStoreController().handle);
+router.put("/user/edit", isAuthentication_1.isAuthentication, new EditStoreController_1.EditStoreController().handle);
+router.put("/user/image/:id", isAuthentication_1.isAuthentication, upload.single("file"), new ImageStoreController_1.ImageStoreController().handle);
+router.patch("/user/status", isAuthentication_1.isAuthentication, new EditStatusController_1.EditStatusController().handle);
+router.delete("/user/delete", isAuthentication_1.isAuthentication, new DeleteClientController_1.DeleteClientController().handle);
+router.post("/user/change", new ChangePasswordController_1.ChangePasswordController().handle);
 //router.post('/auth/reset/validate', new AuthResetController().handle)
-router.post('/auth/reset/validate', new AuthResetController_1.AuthResetController().handle);
-router.get('/user/reset-password', new AuthResetValidateController_1.AuthResetValidateController().handle);
-router.post('/user/reset-password', new AuthResetController_1.AuthResetController().handle);
+router.post("/auth/reset/validate", new AuthResetController_1.AuthResetController().handle);
+router.get("/user/reset-password", new AuthResetValidateController_1.AuthResetValidateController().handle);
+router.post("/user/reset-password", new AuthResetController_1.AuthResetController().handle);
 //--Rotas de Email
-emailRoutes.post('/send-test-email', new SendTestEmailController_1.SendTestEmailController().handle);
-router.post('/change-password', new ChangePasswordController_1.ChangePasswordController().handle);
+emailRoutes.post("/send-test-email", new SendTestEmailController_1.SendTestEmailController().handle);
+router.post("/change-password", new ChangePasswordController_1.ChangePasswordController().handle);
+//--------------Rotas de Bairro-------------------------------
+router.post("/criar_bairro", isAuthentication_1.isAuthentication, new bairroController_1.BairroController().criarBairro);
+router.get(
+// "/bairros/:lanchonete_id",
+"/bairros", isAuthentication_1.isAuthentication, new bairroController_1.BairroController().getBairroId);
+router.get("/bairros/public/:lanchonete_id", new bairroController_1.BairroController().getBairrosPublicos);
+router.delete("/delete_bairro/:id", isAuthentication_1.isAuthentication, new bairroController_1.BairroController().deletarBairro);
+router.put("/edit-bairro/:id", isAuthentication_1.isAuthentication, new bairroController_1.BairroController().editarBairro);
 // Rotas deMensagem
-router.get('/chat', new GetAllChatController_1.GetAllChatController().handle);
-router.get('/chat/:order_id', new GetChatController_1.GetChatController().handle);
-router.get('/message/:chat_id', new ListMessageController_1.MessageGetController().handle);
-router.post('/message', new MessaPostController_1.MessagePostController().handle);
-router.delete('/chat/:order_id', new DeleteChatController_1.DeleteChatController().handle);
+router.post("/chat/socket-ticket", chat_1.chatGuard, chat_1.chatTicket);
+router.get("/chat", isAuthentication_1.isAuthentication, new GetAllChatController_1.GetAllChatController().handle);
+router.get("/chat/:order_id", chat_1.chatGuard, new GetChatController_1.GetChatController().handle);
+router.get("/message/:chat_id", chat_1.chatGuard, new ListMessageController_1.MessageGetController().handle);
+router.post("/message", chat_1.chatGuard, new MessaPostController_1.MessagePostController().handle);
+router.delete("/chat/:order_id", chat_1.chatGuard, new DeleteChatController_1.DeleteChatController().handle);
 //---Rotas de Produtos
-router.get('/product', isAuthentication_1.isAuthentication, new GetProductController_1.GetProductController().handle);
-router.post('/product', isAuthentication_1.isAuthentication, upload.single('file'), new CreateProductController_1.CreateProductController().handle);
-router.put('/product/edit', isAuthentication_1.isAuthentication, upload.single('file'), new EditProductController_1.EditProductController().handle);
-router.delete('/product/delete', isAuthentication_1.isAuthentication, new DeleteProductController_1.DeleteProductController().handle);
-router.get('/product/client', new GetProductController_1.GetProductController().handle);
-router.get('/product/:id', new GetProductIdController_1.GetProductIdController().handle);
+router.get("/product", isAuthentication_1.isAuthentication, new GetProductController_1.GetProductController().handle);
+router.post("/product", isAuthentication_1.isAuthentication, upload.single("file"), new CreateProductController_1.CreateProductController().handle);
+router.put("/product/edit", isAuthentication_1.isAuthentication, upload.single("file"), new EditProductController_1.EditProductController().handle);
+router.delete("/product/delete", isAuthentication_1.isAuthentication, new DeleteProductController_1.DeleteProductController().handle);
+router.get("/product/client", new GetProductController_1.GetProductController().handle);
+router.get("/product/:id", new GetProductIdController_1.GetProductIdController().handle);
 //--Rotas de Clientes
-router.post('/client/:id', new CreateClientController_1.CreateClientController().handle);
-router.get('/client/:id', new GetClientController_1.GetClientController().handle);
-router.delete('/client/delete', new DeleteClientController_1.DeleteClientController().handle);
-router.put('/client/update', new UpdateClientController_1.UpdateClientController().handle);
+router.post("/client/:id", new CreateClientController_1.CreateClientController().handle);
+router.get("/client/:id", customerAccess_1.customerAccess, new GetClientController_1.GetClientController().handle);
+router.delete("/client/delete", isAuthentication_1.isAuthentication, new DeleteClientController_1.DeleteClientController().handle);
+router.put("/client/update", customerAccess_1.customerAccess, new UpdateClientController_1.UpdateClientController().handle);
 //--Rotas de Pedidos(orders)
-router.post('/order/:id', new OrderSalesController_1.OrderSalesController().handle);
-router.patch('/order', new UpdateOrderController_1.UpdateOrderController().handle);
-router.get('/order', isAuthentication_1.isAuthentication, new DashboardController_1.DashboardController().handle);
-router.get('/grafic', isAuthentication_1.isAuthentication, new GraficController_1.GraficController().handle);
+router.post("/order/:id", customerAccess_1.customerAccess, new OrderSalesController_1.OrderSalesController().handle);
+router.patch("/order", isAuthentication_1.isAuthentication, new UpdateOrderController_1.UpdateOrderController().handle);
+router.get("/order", isAuthentication_1.isAuthentication, new DashboardController_1.DashboardController().handle);
+router.get("/grafic", isAuthentication_1.isAuthentication, new GraficController_1.GraficController().handle);
 //--Rotas de Pedidos(order_item)
-router.post('/order_item', new CreateOrderItemController_1.CreateOrderItemController().handle);
-router.delete('/order_item', new DeleteOrderController_1.DeleteOrderController().handle);
-router.get('/order_item', isAuthentication_1.isAuthentication, new GetOrdemItemController_1.GetOrdemItemController().handle);
+router.post("/order_item", new CreateOrderItemController_1.CreateOrderItemController().handle);
+router.delete("/order_item", isAuthentication_1.isAuthentication, new DeleteOrderController_1.DeleteOrderController().handle);
+router.get("/order_item", isAuthentication_1.isAuthentication, new GetOrdemItemController_1.GetOrdemItemController().handle);

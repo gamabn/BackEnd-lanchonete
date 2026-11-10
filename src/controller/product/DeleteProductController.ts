@@ -11,6 +11,7 @@ class DeleteProductController{
     const deleteStoreService = new DeleteProductService();
     const product = await deleteStoreService.execute(product_id, restaurant_id);
 
+    if (!product) return res.status(404).json({ error: "Produto não encontrado." });
     return res.json(product);
   }
 

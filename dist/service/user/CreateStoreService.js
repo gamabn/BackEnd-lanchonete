@@ -12,7 +12,7 @@ class CreateStoreService {
         if (!email) {
             throw new Error('Email incorreto');
         }
-        const existEmail = await database_1.pool.query('SELECT * FROM restaurants WHERE email = $1', [email]);
+        const existEmail = await database_1.pool.query('SELECT id FROM restaurants WHERE email = $1', [email]);
         if (existEmail.rows.length > 0) {
             throw new Error('Email já cadastrado');
         }
@@ -23,7 +23,7 @@ class CreateStoreService {
         const store = await database_1.pool.query(`INSERT INTO restaurants 
         (name, email, password, phone, city, neighborhood, street, "number") 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-       RETURNING *`, [name, email, hashedPassword, phone, city, neighborhood, street, number]);
+       RETURNING id, name, phone, city, neighborhood, street, "number", image_url, status`, [name, email, hashedPassword, phone, city, neighborhood, street, number]);
         return store.rows[0];
     }
 }

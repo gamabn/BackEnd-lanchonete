@@ -6,6 +6,7 @@ class GetOrderItemService {
     async execute(restaurant_id) {
         const orderItems = await database_1.pool.query(`SELECT 
           o.id AS order_id,
+          o.restaurant_id,
           o.status,
           (o.total_price)::float8 AS total_price,
           o.created_at,
@@ -42,10 +43,11 @@ class GetOrderItemService {
       `, [restaurant_id]);
         return orderItems.rows;
     }
-    async findByOrderId(order_id) {
-        const { rows } = await database_1.pool.query(`
+    async findByOrderId(order_id, client = database_1.pool) {
+        const { rows } = await client.query(`
       SELECT 
         o.id AS order_id,
+          o.restaurant_id,
         o.status,
         (o.total_price)::float8 AS total_price,
         o.created_at,

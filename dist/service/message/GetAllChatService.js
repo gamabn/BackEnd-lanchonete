@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetAllChatService = void 0;
 const database_1 = require("../../database");
 class GetAllChatService {
-    async execute() {
+    async execute(restaurant_id) {
         const query = `
       SELECT 
         c.id AS chat_id,
@@ -14,9 +14,10 @@ class GetAllChatService {
         cu.name AS customer_name
       FROM chats c
       JOIN orders o ON o.id = c.order_id
-      JOIN customers cu ON cu.id = o.customer_id;
+      JOIN customers cu ON cu.id = o.customer_id AND cu.restaurant_id = o.restaurant_id
+      WHERE o.restaurant_id = $1 AND c.restaurant_id = o.restaurant_id;
     `;
-        const result = await database_1.pool.query(query);
+        const result = await database_1.pool.query(query, [restaurant_id]);
         return result.rows; // retorna todos os chats já com restaurant_id
     }
 }

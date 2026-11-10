@@ -13,6 +13,8 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const redis_adapter_1 = require("@socket.io/redis-adapter");
 const redis_1 = require("redis");
+const chat_1 = require("./socket/chat");
+const orders_1 = require("./socket/orders");
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
 //const io = new Server(server,{
@@ -29,25 +31,7 @@ const io = new socket_io_1.Server(server, {
     transports: ["websocket", "polling"], // 🔹 garante compatibilidade no Render
 });
 exports.io = io;
-{ /* io.on("connection", (socket) => {
-  console.log("Cliente conectado:", socket.id);
-
-  // 🔹 Cliente entra em uma sala de chat
-  socket.on("joinRoom", (chatId: string) => {
-    socket.join(chatId);
-    console.log(`Socket ${socket.id} entrou na sala ${chatId}`);
-  });
-
-    // Evento de digitando
-  socket.on("typing", (data: { chatId: string; sender_id: string; isTyping: boolean }) => {
-    io.to(data.chatId).emit("typing", data);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Cliente desconectado:", socket.id);
-  });
-});*/
-}
+(0, orders_1.configureOrdersSocket)(io);
 //======================================
 // 🔹 Configura Redis Adapter (para não duplicar eventos entre instâncias)
 async function setupSocketAdapter() {
@@ -64,21 +48,7 @@ async function setupSocketAdapter() {
 setupSocketAdapter().catch(err => {
     console.error("Erro ao configurar Redis adapter:", err);
 });
-io.on("connection", (socket) => {
-    console.log("Cliente conectado:", socket.id);
-    // 🔹 Cliente entra em uma sala de chat
-    socket.on("joinRoom", (chatId) => {
-        socket.join(chatId);
-        console.log(`Socket ${socket.id} entrou na sala ${chatId}`);
-    });
-    // 🔹 Evento de digitando
-    socket.on("typing", (data) => {
-        io.to(data.chatId).emit("typing", data);
-    });
-    socket.on("disconnect", () => {
-        console.log("Cliente desconectado:", socket.id);
-    });
-});
+(0, chat_1.configureChatSocket)(io);
 //==============================================
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({

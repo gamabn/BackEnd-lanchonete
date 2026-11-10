@@ -30,7 +30,7 @@ class EditStoreService {
         neighborhood = $5,
         street = $6,
         number = $7
-      WHERE id = $8 RETURNING *`,
+      WHERE id = $8 RETURNING id, name, email, phone, city, neighborhood, street, "number", image_url, status`,
       [name, email, phone, city, neighborhood, street, number, id]
     );
 

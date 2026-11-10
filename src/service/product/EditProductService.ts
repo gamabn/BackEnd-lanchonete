@@ -11,6 +11,13 @@ interface ProductData {
 }
 
 class EditProductService {
+  async findOwned(product_id: string, restaurant_id: string) {
+    const result = await pool.query<{ id: string; public_id: string | null }>(
+      "SELECT id, public_id FROM products WHERE id = $1 AND restaurant_id = $2", [product_id, restaurant_id]
+    );
+    return result.rows[0];
+  }
+
   async execute({
     product_id,
     name,
@@ -27,7 +34,7 @@ class EditProductService {
     );
 
     if (currentProductResult.rows.length === 0) {
-      throw new Error("Produto não encontrado ou não pertence ao restaurante.");
+      return undefined;
     }
 
     const currentProduct = currentProductResult.rows[0];

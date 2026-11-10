@@ -1,24 +1,20 @@
-
 import { GetClientService } from "../../service/clients/GetClientService";
+import type { CustomerPrincipal } from "../../security/customerAccess";
 import type { Request, Response } from "express";
 
 class GetClientController {
-
   async handle(req: Request, res: Response) {
-    const restaurant_id = req.params.id;
-    const phone = req.query.phone as string; // <- pegar do query param
-    console.log("restaurant_id:", restaurant_id, "phone:", phone);
-
-  if (!phone) {
-      return res.status(400).json({ error: "Telefone não fornecido" });
+    const actor = res.locals.customerPrincipal as CustomerPrincipal;
+    const phone = req.query.phone;
+    if ((phone !== undefined && typeof phone !== "string") || (actor.type === "restaurant" && !phone)) {
+      return res.status(400).json({ error: "Telefone válido obrigatório na consulta administrativa." });
     }
-
-
-    const getClientService = new GetClientService();
-    const clients = await getClientService.execute({restaurant_id, phone});
-
+    const clients = await new GetClientService().execute({
+      restaurant_id: actor.restaurantId, phone,
+      customer_id: actor.type === "customer" ? actor.customerId : undefined,
+    });
+    if (actor.type === "customer" && !clients.length) return res.status(404).json({ error: "Cadastro não encontrado." });
     return res.json(clients);
   }
-
 }
-export { GetClientController }
+export { GetClientController };
