@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { ProductInputError } from "../../service/product/productValidation";
 import { CreateProductOptionService } from "../../service/productOptions/CreateProductOptionService";
 
 export class CreateProductOptionController {
@@ -26,30 +27,12 @@ export class CreateProductOptionController {
         return;
       }
 
-      if (typeof name !== "string" || !name.trim()) {
-        res.status(400).json({
-          error: "Informe o nome do ingrediente.",
-        });
-        return;
-      }
-
-      if (
-        typeof additionalPrice !== "number" ||
-        !Number.isFinite(additionalPrice) ||
-        additionalPrice < 0
-      ) {
-        res.status(400).json({
-          error: "Preço adicional inválido.",
-        });
-        return;
-      }
-
       const service = new CreateProductOptionService();
 
       const option = await service.execute({
         restaurantId,
         groupId,
-        name: name.trim(),
+        name,
         additionalPrice,
       });
 
@@ -60,14 +43,9 @@ export class CreateProductOptionController {
     } catch (error: unknown) {
       console.error("Erro ao cadastrar ingrediente:", error);
 
-      if (error instanceof Error) {
-        if (
-          error.message ===
-          "Grupo não encontrado ou não pertence ao restaurante."
-        ) {
-          res.status(404).json({ error: error.message });
-          return;
-        }
+      if (error instanceof ProductInputError) {
+        res.status(error.status).json({ error: error.message, details: error.details });
+        return;
       }
 
       const pgError = error as { code?: string };

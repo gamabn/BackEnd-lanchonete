@@ -7,7 +7,7 @@ import {
 } from "../order/orderValidation";
 
 interface ValidateConfiguredProductRequest {
-  client: PoolClient;
+  client: Pick<PoolClient, "query">;
   restaurantId: string;
   productId: string;
   variantId: string;

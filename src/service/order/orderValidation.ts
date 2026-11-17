@@ -14,12 +14,16 @@ export interface OrderItemInput {
   option_ids?: string[];
 }
 
-export interface OrderInput {
+interface OrderInputBase {
   items: OrderItemInput[];
-  bairro_id: string;
   payment_method: "Dinheiro" | "Cartao" | "Pix";
   change_for: string;
 }
+
+export type OrderInput = OrderInputBase & (
+  | { fulfillment_type: "DELIVERY"; bairro_id: string }
+  | { fulfillment_type: "PICKUP"; bairro_id: null }
+);
 
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -48,16 +52,23 @@ export function parseOrder(input: unknown): OrderInput {
 
   const body = input as Record<string, unknown>;
 
-  const allowed = ["items", "bairro_id", "payment_method", "change_for"];
+  const allowed = ["items", "bairro_id", "payment_method", "change_for", "fulfillment_type"];
 
   if (Object.keys(body).some((key) => !allowed.includes(key))) {
     throw new OrderValidationError(
-      "Envie somente itens, bairro, pagamento e troco.",
+      "Envie somente itens, modalidade, bairro, pagamento e troco.",
     );
   }
 
-  if (typeof body.bairro_id !== "string" || !uuidRegex.test(body.bairro_id)) {
+  const fulfillment = body.fulfillment_type === undefined ? "DELIVERY" : body.fulfillment_type;
+  if (fulfillment !== "DELIVERY" && fulfillment !== "PICKUP") {
+    throw new OrderValidationError("Modalidade de atendimento inválida.");
+  }
+  if (fulfillment === "DELIVERY" && (typeof body.bairro_id !== "string" || !uuidRegex.test(body.bairro_id))) {
     throw new OrderValidationError("Bairro inválido.");
+  }
+  if (fulfillment === "PICKUP" && body.bairro_id !== undefined && body.bairro_id !== null) {
+    throw new OrderValidationError("Retirada não permite bairro de entrega.");
   }
 
   if (
@@ -166,7 +177,9 @@ export function parseOrder(input: unknown): OrderInput {
 
   return {
     items,
-    bairro_id: body.bairro_id,
+    ...(fulfillment === "DELIVERY"
+      ? { fulfillment_type: "DELIVERY" as const, bairro_id: body.bairro_id as string }
+      : { fulfillment_type: "PICKUP" as const, bairro_id: null }),
     payment_method: body.payment_method,
     change_for: moneyText(change),
   };

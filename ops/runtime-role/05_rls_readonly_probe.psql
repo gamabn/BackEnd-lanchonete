@@ -1,0 +1,41 @@
+\set ON_ERROR_STOP on
+-- OPTIONAL AFTER APPROVED DEPLOYMENT: real gama_app login, two existing owned test templates.
+-- Variables: restaurant_a, restaurant_b, template_a, template_b (UUIDs, never credentials).
+-- Fails if test evidence is missing; empty tables do NOT count as proof of isolation.
+BEGIN READ ONLY;
+SELECT set_config('gama.probe_restaurant_a', :'restaurant_a', true),
+       set_config('gama.probe_restaurant_b', :'restaurant_b', true),
+       set_config('gama.probe_template_a', :'template_a', true),
+       set_config('gama.probe_template_b', :'template_b', true);
+DO $probe$
+DECLARE a UUID:=current_setting('gama.probe_restaurant_a')::uuid;
+        b UUID:=current_setting('gama.probe_restaurant_b')::uuid;
+        ta UUID:=current_setting('gama.probe_template_a')::uuid;
+        tb UUID:=current_setting('gama.probe_template_b')::uuid;
+BEGIN
+    IF current_database()<>'neondb' OR current_user<>'gama_app' OR session_user<>'gama_app' THEN RAISE EXCEPTION 'Use real gama_app login to neondb'; END IF;
+    IF a=b OR ta=tb THEN RAISE EXCEPTION 'Need two distinct restaurants/templates'; END IF;
+    IF NOT row_security_active('public.restaurant_product_templates'::regclass) OR NOT row_security_active('public.restaurant_product_template_versions'::regclass) THEN RAISE EXCEPTION 'RLS not active'; END IF;
+    PERFORM set_config('gama.restaurant_id',a::text,true);
+    IF NOT EXISTS (SELECT 1 FROM public.restaurant_product_templates WHERE id=ta AND restaurant_id=a)
+       OR NOT EXISTS (SELECT 1 FROM public.restaurant_product_template_versions WHERE template_id=ta AND restaurant_id=a) THEN RAISE EXCEPTION 'Missing visible template/version A; cannot prove isolation'; END IF;
+    IF EXISTS (SELECT 1 FROM public.restaurant_product_templates WHERE id=tb)
+       OR EXISTS (SELECT 1 FROM public.restaurant_product_template_versions WHERE template_id=tb)
+       OR EXISTS (SELECT 1 FROM public.restaurant_product_templates WHERE restaurant_id<>a) THEN RAISE EXCEPTION 'A can read another restaurant'; END IF;
+    PERFORM set_config('gama.restaurant_id',b::text,true);
+    IF NOT EXISTS (SELECT 1 FROM public.restaurant_product_templates WHERE id=tb AND restaurant_id=b)
+       OR NOT EXISTS (SELECT 1 FROM public.restaurant_product_template_versions WHERE template_id=tb AND restaurant_id=b) THEN RAISE EXCEPTION 'Missing visible template/version B; cannot prove isolation'; END IF;
+    IF EXISTS (SELECT 1 FROM public.restaurant_product_templates WHERE id=ta)
+       OR EXISTS (SELECT 1 FROM public.restaurant_product_template_versions WHERE template_id=ta)
+       OR EXISTS (SELECT 1 FROM public.restaurant_product_templates WHERE restaurant_id<>b) THEN RAISE EXCEPTION 'B can read another restaurant'; END IF;
+    PERFORM set_config('gama.restaurant_id','',true);
+    IF EXISTS (SELECT 1 FROM public.restaurant_product_templates) OR EXISTS (SELECT 1 FROM public.restaurant_product_template_versions) THEN RAISE EXCEPTION 'Missing context exposed rows'; END IF;
+END
+$probe$;
+ROLLBACK;
+DO $reset$
+BEGIN
+    IF NULLIF(current_setting('gama.restaurant_id',true),'') IS NOT NULL THEN RAISE EXCEPTION 'Tenant context leaked after rollback'; END IF;
+END
+$reset$;
+SELECT 'real read-only RLS isolation probe passed' AS result;

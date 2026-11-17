@@ -1,13 +1,28 @@
 import { pool } from "../../database";
+import type { PoolClient } from "pg";
 
 interface ListProductOptionsRequest {
   restaurantId: string;
   productId: string;
 }
 
+interface ProductOptionGroup {
+  id: string;
+  name: string;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  options: {
+    id: string;
+    name: string;
+    additionalPrice: number | string;
+    available: boolean | null;
+  }[];
+}
+
 export class ListProductOptionsService {
-  async execute({ restaurantId, productId }: ListProductOptionsRequest) {
-    const result = await pool.query(
+  async execute({ restaurantId, productId }: ListProductOptionsRequest, db: Pick<PoolClient, "query"> = pool, exactPrices = false) {
+    const result = await db.query(
       `
       SELECT
         pog.id AS group_id,
@@ -37,25 +52,27 @@ export class ListProductOptionsService {
       [productId, restaurantId],
     );
 
-    const groups = new Map<string, any>();
+    const groups = new Map<string, ProductOptionGroup>();
 
     for (const row of result.rows) {
-      if (!groups.has(row.group_id)) {
-        groups.set(row.group_id, {
+      let group = groups.get(row.group_id);
+      if (!group) {
+        group = {
           id: row.group_id,
           name: row.group_name,
           required: row.required,
           minSelect: row.min_select,
           maxSelect: row.max_select,
           options: [],
-        });
+        };
+        groups.set(row.group_id, group);
       }
 
       if (row.option_id) {
-        groups.get(row.group_id).options.push({
+        group.options.push({
           id: row.option_id,
           name: row.option_name,
-          additionalPrice: Number(row.additional_price),
+          additionalPrice: exactPrices ? String(row.additional_price) : Number(row.additional_price),
           available: row.available,
         });
       }

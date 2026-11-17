@@ -36,26 +36,10 @@ export const deleteFromCloudinary = (publicId: string): Promise<{ result: string
     cloudinary.uploader.destroy(publicId, { resource_type: "image" }, (error, result: unknown) => {
       // O tipo de 'result' pode ser { result: 'ok' } ou { result: 'not found' } ou undefined em caso de erro.
       if (error) return reject(error);
-      if (!result || typeof result !== "object" || !("result" in result) || typeof result.result !== "string") {
+      if (!result || typeof result !== "object" || !("result" in result) || (result.result !== "ok" && result.result !== "not found")) {
         return reject(new Error("Resposta inválida ao excluir imagem."));
       }
       resolve({ result: result.result });
     });
   });
-};
-
-// -----------------------
-// Atualizar imagem
-// Deleta a antiga e envia a nova
-// -----------------------
-export const updateCloudinaryImage = async (
-  oldPublicId: string,
-  newBuffer: Buffer,
-  options?: UploadApiOptions
-): Promise<UploadApiResponse> => {
-  if (oldPublicId) {
-    await deleteFromCloudinary(oldPublicId);
-  }
-  const result = await uploadToCloudinary(newBuffer, options);
-  return result;
 };

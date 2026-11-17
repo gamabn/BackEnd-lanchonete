@@ -1,8 +1,10 @@
+import { normalizeProductCategory } from "../product/productValidation";
 import { pool } from "../../database";
 
 interface CreateFromTemplateRequest {
   restaurantId: string;
   templateSlug: string;
+  category?: string | null;
 }
 
 interface TemplateVariant {
@@ -40,7 +42,8 @@ export class ProductTemplateError extends Error {
 }
 
 export class CreateProductFromTemplateService {
-  async execute({ restaurantId, templateSlug }: CreateFromTemplateRequest) {
+  async execute({ restaurantId, templateSlug, category }: CreateFromTemplateRequest) {
+    const normalizedCategory = normalizeProductCategory(category) ?? null;
     const client = await pool.connect();
 
     try {
@@ -113,12 +116,13 @@ export class CreateProductFromTemplateService {
         id: string;
         name: string;
         published: boolean;
+        category: string | null;
       }>(
         `INSERT INTO public.products
-          (restaurant_id, name, description, price, available, published)
-         VALUES ($1, $2, $3, $4, TRUE, FALSE)
-         RETURNING id, name, published`,
-        [restaurantId, config.name, config.description ?? null, initialPrice],
+          (restaurant_id, name, description, price, available, published, category)
+         VALUES ($1, $2, $3, $4, TRUE, FALSE, $5)
+         RETURNING id, name, published, category`,
+        [restaurantId, config.name, config.description ?? null, initialPrice, normalizedCategory],
       );
 
       const product = productResult.rows[0];

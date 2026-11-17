@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { ProductInputError } from "../../service/product/productValidation";
 import { UpdateProductOptionService } from "../../service/productOptions/UpdateProductOptionService";
 
 export class UpdateProductOptionController {
@@ -28,31 +29,6 @@ export class UpdateProductOptionController {
 
       const { name, additionalPrice, available } = req.body ?? {};
 
-      if (
-        name === undefined &&
-        additionalPrice === undefined &&
-        available === undefined
-      ) {
-        res.status(400).json({
-          error: "Informe pelo menos um campo para atualizar.",
-        });
-        return;
-      }
-
-      if (
-        (name !== undefined && (typeof name !== "string" || !name.trim())) ||
-        (additionalPrice !== undefined &&
-          (typeof additionalPrice !== "number" ||
-            !Number.isFinite(additionalPrice) ||
-            additionalPrice < 0)) ||
-        (available !== undefined && typeof available !== "boolean")
-      ) {
-        res.status(400).json({
-          error: "Dados inválidos para atualização.",
-        });
-        return;
-      }
-
       const service = new UpdateProductOptionService();
 
       const option = await service.execute({
@@ -76,6 +52,11 @@ export class UpdateProductOptionController {
       });
     } catch (error: unknown) {
       console.error("Erro ao atualizar ingrediente:", error);
+
+      if (error instanceof ProductInputError) {
+        res.status(error.status).json({ error: error.message, details: error.details });
+        return;
+      }
 
       const pgError = error as { code?: string };
 

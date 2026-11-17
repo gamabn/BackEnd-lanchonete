@@ -63,10 +63,14 @@ function services() {
     }
     assert.fail(sql);
   } };
-  const dependencies = { '../../database': { pool }, '../../security/customerAccess': security };
+  const dependencies = { '../../database': { pool }, '../../security/customerAccess': security, '../../security/customerPhone': load('src/security/customerPhone.ts'), '../../security/customerName': load('src/security/customerName.ts') };
+  dependencies['../../security/customerAddress'] = load('src/security/customerAddress.ts');
+  dependencies['./customerAddressSchema'] = load('src/service/clients/customerAddressSchema.ts', dependencies);
+  const getters = load('src/service/clients/GetClientService.ts', dependencies);
+  dependencies['./GetClientService'] = getters;
   return {
     records, calls,
-    ...load('src/service/clients/GetClientService.ts', dependencies),
+    ...getters,
     ...load('src/service/clients/UpdateClientService.ts', dependencies),
     ...load('src/service/clients/CreateClientService.ts', dependencies),
   };
@@ -150,7 +154,7 @@ test('owner updates are tenant-scoped even when the customer ID is known', async
 test('signup issues access only to a newly inserted record, never the existing phone match', async () => {
   const s = services(); const { CreateClientController } = controllers(s);
   const res = response();
-  await new CreateClientController().handle({ params: { id: 'A' }, body: { name: 'New', phone: alice.phone, city: 'City' } }, res);
+  await new CreateClientController().handle({ params: { id: 'A' }, body: { ...contact, name: 'New', phone: alice.phone } }, res);
   assert.equal(res.statusCode, 201); assert.notEqual(res.body.id, 'alice');
   const principal = security.authenticateCustomerAccess(res.body.customer_credential);
   assert.equal(principal.customerId, res.body.id); assert.equal(principal.restaurantId, 'A');
@@ -162,7 +166,7 @@ test('legacy uniqueness conflicts do not grant credentials or recover a record b
     async execute() { throw { code: '23505', detail: 'private existing customer details' }; }
   } });
   const res = response();
-  await new CreateClientController().handle({ params: { id: 'A' }, body: { name: 'New', phone: '111', city: 'City' } }, res);
+  await new CreateClientController().handle({ params: { id: 'A' }, body: { ...contact, name: 'New', phone: '111' } }, res);
   assert.equal(res.statusCode, 409); assert.equal('customer_credential' in res.body, false);
   assert.equal(JSON.stringify(res.body).includes('private existing'), false);
 });
@@ -177,4 +181,87 @@ test('signup rejects caller-supplied internal fields and nonexistent establishme
   const { CreateClientController: MissingController } = controllers({ CreateClientService: class { async execute() { return undefined; } } });
   const res = response(); await new MissingController().handle({ params: { id: 'missing' }, body: contact }, res);
   assert.equal(res.statusCode, 404); assert.equal('customer_credential' in res.body, false);
+});
+
+test('expired customer sessions have an explicit code while forged credentials remain invalid', () => {
+  const key = createHmac('sha256', secret).update('gama:customer-profile:v1').digest();
+  const expired = jwt.sign({ restaurantId: 'A' }, key, {
+    subject: 'alice', audience: 'customer-profile', issuer: 'gama-delivery', expiresIn: -1,
+  });
+  assert.equal(authorize(expired, 'A').res.body.code, 'SESSION_EXPIRED');
+  assert.equal(authorize('forged', 'A').res.body.code, 'SESSION_INVALID');
+});
+
+const addressFields = ['city','street','number','neighborhood','complement'];
+test('PICKUP signup inserts contact plus explicit NULLs and issues only the new tenant-bound credential',async()=>{
+  const s=services(), before=JSON.stringify(s.records), {CreateClientController}=controllers(s), res=response();
+  await new CreateClientController().handle({params:{id:'A'},body:{name:' Pickup Client ',phone:'11999999999',fulfillment_type:'PICKUP'}},res);
+  assert.equal(res.statusCode,201);assert.equal(res.body.name,'Pickup Client');
+  for(const field of addressFields)assert.equal(res.body[field],null);
+  const write=s.calls.find(call=>call.sql.startsWith('INSERT'));
+  assert.deepEqual(Array.from(write.params.slice(2,7)),[null,null,null,null,null]);assert.equal(write.params[7],'A');
+  assert.equal(JSON.stringify(s.records.slice(0,3)),before);
+  const actor=security.authenticateCustomerAccess(res.body.customer_credential);
+  assert.equal(actor.customerId,res.body.id);assert.equal(actor.restaurantId,'A');
+  assert.equal(authorize(res.body.customer_credential,'B').res.statusCode,403);
+});
+test('PICKUP omitted/null/blank address fields normalize to SQL NULL, never restaurant data',async()=>{
+  for(const value of [undefined,null,'','   ']){
+    const s=services(),{CreateClientController}=controllers(s),res=response();
+    const body={name:'Pickup',phone:'11999999999',fulfillment_type:'PICKUP'};
+    for(const key of addressFields)if(value!==undefined)body[key]=value;
+    await new CreateClientController().handle({params:{id:'A'},body},res);
+    assert.equal(res.statusCode,201);for(const key of addressFields)assert.equal(res.body[key],null);
+  }
+});
+for(const field of addressFields)test(`PICKUP signup rejects populated/conflicting ${field}`,async()=>{
+  for(const value of ['Restaurant data',{},false,42]){
+    const s=services(),{CreateClientController}=controllers(s),res=response();
+    await new CreateClientController().handle({params:{id:'A'},body:{name:'Pickup',phone:'11999999999',fulfillment_type:'PICKUP',[field]:value}},res);
+    assert.equal(res.statusCode,400);assert.equal(s.calls.length,0);
+  }
+});
+test('legacy and explicit DELIVERY signups require complete address, preserve values and normalize absent complement',async()=>{
+  for(const mode of [undefined,'DELIVERY']){
+    const body={...contact};delete body.complement;if(mode)body.fulfillment_type=mode;
+    const s=services(),{CreateClientController}=controllers(s),res=response();
+    await new CreateClientController().handle({params:{id:'A'},body},res);
+    assert.equal(res.statusCode,201);assert.equal(res.body.city,'City');assert.equal(res.body.street,'Street');assert.equal(res.body.complement,null);
+    for(const key of ['city','street','number','neighborhood'])for(const value of [undefined,null,'','   ',{}]){
+      const invalid=response();await new CreateClientController().handle({params:{id:'A'},body:{...body,[key]:value}},invalid);assert.equal(invalid.statusCode,400);
+    }
+  }
+});
+test('creation mode cannot bypass update validation, identity checks or ownership',async()=>{
+  for(const type of ['PICKUP','DELIVERY',null,false,'pickup']){
+    const s=services(),{UpdateClientController}=controllers(s),{req,res}=authorize(customerToken(alice));
+    await new UpdateClientController().handle({...req,body:{...contact,fulfillment_type:type}},res);
+    assert.equal(res.statusCode,400);assert.equal(s.calls.length,0);
+  }
+  for(const field of ['id','restaurant_id','customer_id','email_verified_at','allowPickupCreation','purpose']){
+    const s=services(),{CreateClientController}=controllers(s),res=response();
+    await new CreateClientController().handle({params:{id:'A'},body:{name:'Pickup',phone:'11999999999',fulfillment_type:'PICKUP',[field]:'foreign'}},res);
+    assert.equal(res.statusCode,400);assert.equal(s.calls.length,0);
+  }
+});
+test('PICKUP-created customer later saves a complete DELIVERY address under its own credential only',async()=>{
+  const s=services(),{CreateClientController,UpdateClientController}=controllers(s),created=response();
+  await new CreateClientController().handle({params:{id:'A'},body:{name:'Pickup',phone:'11999999999',fulfillment_type:'PICKUP'}},created);
+  const signed=authorize(created.body.customer_credential,'A');
+  const originalOthers=JSON.stringify(s.records.filter(row=>row.id!==created.body.id));
+  await new UpdateClientController().handle({...signed.req,body:{...contact,name:'Pickup',phone:'11999999999'}},signed.res);
+  assert.equal(signed.res.statusCode,200);assert.equal(signed.res.body.id,created.body.id);assert.equal(signed.res.body.city,'City');assert.equal(signed.res.body.street,'Street');
+  assert.equal(JSON.stringify(s.records.filter(row=>row.id!==created.body.id)),originalOthers);
+  const update=s.calls.find(call=>call.sql.startsWith('UPDATE'));assert.equal(update.params[7],created.body.id);assert.equal(update.params[8],'A');
+});
+test('invalid mode or missing personal data never reaches SQL',async()=>{
+  for(const body of [
+    {name:'Pickup',phone:'11999999999',fulfillment_type:null},
+    {name:'Pickup',phone:'11999999999',fulfillment_type:'pickup'},
+    {name:'',phone:'11999999999',fulfillment_type:'PICKUP'},
+    {name:'Pickup',phone:'',fulfillment_type:'PICKUP'},
+  ]){
+    const s=services(),{CreateClientController}=controllers(s),res=response();
+    await new CreateClientController().handle({params:{id:'A'},body},res);assert.equal(res.statusCode,400);assert.equal(s.calls.length,0);
+  }
 });

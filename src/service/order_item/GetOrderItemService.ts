@@ -1,5 +1,14 @@
+import type { PickupAddressSnapshot } from "../order/pickupAddress";
 import type { PoolClient } from "pg";
 import { pool } from "../../database";
+
+export interface CustomerOrderSummary {
+  order_id: string;
+  restaurant_id: string;
+  customer_id: string;
+  status: string;
+  total_price: string;
+}
 
 export interface OrderItemOption {
   id: string;
@@ -25,6 +34,11 @@ export interface FullOrder {
   restaurant_id: string;
   status: string;
   total_price: number;
+  fulfillment_type: "DELIVERY" | "PICKUP";
+  subtotal: number | null;
+  delivery_fee: number | null;
+  delivery_address: Record<string, string | null> | null;
+  pickup_address: PickupAddressSnapshot | null;
   created_at: Date | string;
   payment_method: string;
   change_for: string | number | null;
@@ -33,7 +47,7 @@ export interface FullOrder {
     id: string;
     name: string;
     phone: string;
-    city: string;
+    city: string | null;
     street: string | null;
     number: string | null;
     neighborhood: string | null;
@@ -44,12 +58,28 @@ export interface FullOrder {
 }
 
 class GetOrderItemService {
+  /** Customer-specific read: never fetch a restaurant's full list and filter in the bot. */
+  async listByCustomer(restaurantId: string, customerId: string,
+    client: Pick<PoolClient, "query"> = pool): Promise<CustomerOrderSummary[]> {
+    if (!restaurantId?.trim() || !customerId?.trim()) throw new Error("Escopo de pedidos obrigatório.");
+    const result = await client.query<CustomerOrderSummary>(`SELECT o.id AS order_id, o.restaurant_id,
+      o.customer_id, o.status, o.total_price::text AS total_price
+      FROM public.orders o JOIN public.customers c ON c.id = o.customer_id AND c.restaurant_id = o.restaurant_id
+      WHERE o.restaurant_id = $1 AND o.customer_id = $2
+      ORDER BY o.created_at DESC, o.id DESC LIMIT 10`, [restaurantId, customerId]);
+    return result.rows;
+  }
   private readonly baseQuery = `
     SELECT
       o.id AS order_id,
       o.restaurant_id,
       o.status,
       o.total_price::float8 AS total_price,
+      o.fulfillment_type,
+      o.subtotal::float8 AS subtotal,
+      o.delivery_fee::float8 AS delivery_fee,
+      CASE WHEN o.fulfillment_type = 'PICKUP' THEN NULL ELSE o.delivery_address END AS delivery_address,
+      o.pickup_address,
       o.created_at,
       o.payment_method,
       o.change_for,
@@ -58,11 +88,11 @@ class GetOrderItemService {
         'id', c.id,
         'name', c.name,
         'phone', c.phone,
-        'city', c.city,
-        'street', c.street,
-        'number', c.number,
-        'neighborhood', c.neighborhood,
-        'complement', c.complement
+        'city', CASE WHEN o.fulfillment_type = 'PICKUP' THEN NULL WHEN o.delivery_address IS NOT NULL THEN o.delivery_address->>'city' ELSE c.city END,
+        'street', CASE WHEN o.fulfillment_type = 'PICKUP' THEN NULL WHEN o.delivery_address IS NOT NULL THEN o.delivery_address->>'street' ELSE c.street END,
+        'number', CASE WHEN o.fulfillment_type = 'PICKUP' THEN NULL WHEN o.delivery_address IS NOT NULL THEN o.delivery_address->>'number' ELSE c.number END,
+        'neighborhood', CASE WHEN o.fulfillment_type = 'PICKUP' THEN NULL WHEN o.delivery_address IS NOT NULL THEN o.delivery_address->>'neighborhood' ELSE c.neighborhood END,
+        'complement', CASE WHEN o.fulfillment_type = 'PICKUP' THEN NULL WHEN o.delivery_address IS NOT NULL THEN o.delivery_address->>'complement' ELSE c.complement END
       ) AS customer,
 
       COALESCE(

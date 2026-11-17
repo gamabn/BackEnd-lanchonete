@@ -1,0 +1,22 @@
+{
+  "restaurants": {"insert":["name","email","password","phone","city","neighborhood","street","number"],"update":["name","email","password","phone","city","neighborhood","street","number","image_url","status"],"delete":false},
+  "restaurant_types": {"insert":[],"update":[],"delete":false},
+  "restaurant_type_links": {"insert":["restaurant_id","type_id","is_primary"],"update":[],"delete":true},
+  "products": {"insert":["restaurant_id","name","description","price","image_url","public_id","available","published","category"],"update":["name","description","price","image_url","public_id","available","published","category"],"delete":true},
+  "product_variants": {"insert":["product_id","name","price","available"],"update":["name","price","available"],"delete":true},
+  "product_option_groups": {"insert":["product_id","name","required","min_select","max_select"],"update":["name","required","min_select","max_select"],"delete":true},
+  "product_options": {"insert":["group_id","name","additional_price","available"],"update":["name","additional_price","available"],"delete":true},
+  "product_variant_group_limits": {"insert":["variant_id","group_id","min_select","max_select"],"update":["min_select","max_select"],"delete":true},
+  "product_templates": {"insert":[],"update":[],"delete":false},
+  "product_template_versions": {"insert":[],"update":[],"delete":false},
+  "customers": {"insert":["name","phone","city","street","number","neighborhood","complement","restaurant_id"],"update":["name","phone","city","street","number","neighborhood","complement"],"delete":true},
+  "bairros": {"insert":["bairro","frete","lanchonete_id"],"update":["bairro","frete"],"delete":true},
+  "orders": {"insert":["restaurant_id","customer_id","status","total_price","payment_method","change_for","delivery_address","bairro_id","fulfillment_type","subtotal","delivery_fee","pickup_address"],"update":["status"],"delete":true},
+  "order_items": {"insert":["order_id","product_id","quantity","item_price","variant_id","variant_name"],"update":[],"delete":true},
+  "order_item_options": {"insert":["order_item_id","option_id","option_name","group_name","additional_price"],"update":[],"delete":false},
+  "chats": {"insert":["order_id","restaurant_id"],"update":[],"delete":true},
+  "chat_messages": {"insert":["chat_id","sender_type","sender_id","message","name"],"update":[],"delete":true},
+  "password_tokens": {"insert":["email","token","expires_at"],"update":["token","expires_at"],"delete":true},
+  "restaurant_product_templates": {"insert":["restaurant_id","name","description"],"update":["name","description","updated_at"],"delete":true,"private":true},
+  "restaurant_product_template_versions": {"insert":["template_id","restaurant_id","version","configuration","active"],"update":["active"],"delete":true,"private":true}
+}

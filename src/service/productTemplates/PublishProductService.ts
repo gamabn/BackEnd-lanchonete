@@ -16,7 +16,7 @@ export class PublishProductService {
       // Bloqueia o produto durante a publicação.
       const productResult = await client.query(
         `
-        SELECT id, name, published
+        SELECT id, name, published, available
         FROM public.products
         WHERE id = $1
           AND restaurant_id = $2
@@ -57,6 +57,14 @@ export class PublishProductService {
         };
       }
 
+      if (productResult.rows[0].published) {
+        await client.query("COMMIT");
+        return {
+          status: 200,
+          data: { message: "Produto já publicado.", product: productResult.rows[0] },
+        };
+      }
+
       // Publica o produto.
       const result = await client.query(
         `
@@ -64,7 +72,7 @@ export class PublishProductService {
         SET published = TRUE
         WHERE id = $1
           AND restaurant_id = $2
-        RETURNING id, name, published
+        RETURNING id, name, published, available
         `,
         [productId, restaurantId],
       );

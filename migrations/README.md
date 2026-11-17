@@ -88,3 +88,8 @@ O arquivo inclui BEGIN/COMMIT. ON_ERROR_STOP interrompe no primeiro erro, e a de
 - Nenhum arquivo de aplicação ou teste anterior foi modificado nesta etapa.
 
 **A aplicação no Neon permanece pendente de autorização.**
+
+
+## Atualização: schema pós-limpeza manual de frete
+
+A limpeza equivalente à 007 foi confirmada pelo operador ANTES de aplicar 006. Não seguir ordem numérica com arquivos destrutivos antigos. O arquivo 007 atual é exclusivamente uma validação READ ONLY do baseline manual. A única alteração de schema pendente neste fluxo é 006, compatível com ausência de frete/frete_id. Ver `APPLICATION_LOG.md`, `006_order_fulfillment_README.md` e `post_cleanup_sync_report.md`. Não há runner ou tabela de histórico de migrations.

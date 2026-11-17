@@ -19,9 +19,13 @@ class UpdateClientController {
     }
     const data = readCustomerData(input);
     if (!data) return res.status(400).json({ error: "Somente dados de contato e endereço podem ser atualizados." });
-    const client = await new UpdateClientService().execute({ ...data, id, restaurant_id: actor.restaurantId });
-    if (!client) return res.status(404).json({ error: "Cadastro não encontrado." });
-    return res.json(client);
+    try {
+      const client = await new UpdateClientService().execute({ ...data, id, restaurant_id: actor.restaurantId });
+      if (!client) return res.status(404).json({ error: "Cadastro não encontrado." });
+      return res.json(client);
+    } catch {
+      return res.status(503).json({ error: "Não foi possível acessar o cadastro.", code: "CUSTOMER_UNAVAILABLE" });
+    }
   }
 }
 export { UpdateClientController };

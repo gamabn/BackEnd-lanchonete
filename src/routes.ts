@@ -1,3 +1,5 @@
+import { CustomerEmailRecoveryController } from "./controller/clients/CustomerEmailRecoveryController";
+import { customerRecoveryLimit } from "./middlewares/customerRecoveryLimit";
 import { Router } from "express";
 import type { Request, Response } from "express";
 
@@ -31,6 +33,7 @@ import { CreateClientController } from "./controller/clients/CreateClientControl
 import { GetClientController } from "./controller/clients/GetClientController";
 import { DeleteClientController } from "./controller/clients/DeleteClientController";
 import { UpdateClientController } from "./controller/clients/UpdateClientController";
+import { CustomerEmailVerificationController } from "./controller/clients/CustomerEmailVerificationController";
 
 import { OrderSalesController } from "./controller/order/OrderSalesController";
 import { UpdateOrderController } from "./controller/order/UpdateOrderController";
@@ -60,6 +63,11 @@ import { UpdateProductOptionController } from "./controller/productOptions/Updat
 import { ValidateProductPublicationController } from "./controller/productTemplates/ValidateProductPublicationController";
 import { PublishProductController } from "./controller/productTemplates/PublishProductController";
 import { GetPublicProductConfigurationController } from "./controller/productTemplates/GetPublicProductConfigurationController";
+import { ListProductTemplatesController } from "./controller/productTemplates/ListProductTemplatesController";
+import { GetAdminProductConfigurationController } from "./controller/productTemplates/GetAdminProductConfigurationController";
+import { UpdateConfiguredProductController } from "./controller/productTemplates/UpdateConfiguredProductController";
+import { ConfiguredProductCreationController } from "./controller/productTemplates/ConfiguredProductCreationController";
+import { PrivateTemplateController } from "./controller/privateTemplates/PrivateTemplateController";
 //=============Bairro==============================================
 import { BairroController } from "./controller/bairroController/bairroController";
 
@@ -151,6 +159,36 @@ router.post("/message", chatGuard, new MessagePostController().handle);
 router.delete("/chat/:order_id", chatGuard, new DeleteChatController().handle);
 
 //---Rotas de Produtos-----------------------------------------------------
+const privateTemplates = new PrivateTemplateController();
+router.get("/products/templates/private", isAuthentication, privateTemplates.list);
+router.post("/products/templates/private", isAuthentication, privateTemplates.create);
+router.get("/products/templates/private/:templateId", isAuthentication, privateTemplates.get);
+router.patch("/products/templates/private/:templateId", isAuthentication, privateTemplates.rename);
+router.delete("/products/templates/private/:templateId", isAuthentication, privateTemplates.remove);
+router.post("/products/templates/private/:templateId/versions", isAuthentication, privateTemplates.version);
+router.post("/products/from-private-template", isAuthentication, privateTemplates.copy);
+
+router.post("/products/configured", isAuthentication, new ConfiguredProductCreationController().create);
+router.post("/products/:productId/structure", isAuthentication, new ConfiguredProductCreationController().structure);
+
+router.get(
+  "/products/templates",
+  isAuthentication,
+  new ListProductTemplatesController().handle,
+);
+
+router.get(
+  "/products/:productId/admin-configuration",
+  isAuthentication,
+  new GetAdminProductConfigurationController().handle,
+);
+
+router.patch(
+  "/products/:productId/admin-configuration",
+  isAuthentication,
+  new UpdateConfiguredProductController().handle,
+);
+
 router.get(
   "/products/:productId/configuration",
   new GetPublicProductConfigurationController().handle,
@@ -213,10 +251,22 @@ router.delete(
   new DeleteProductController().handle,
 );
 
+router.patch(
+  "/products/:productId/deactivate",
+  isAuthentication,
+  new DeleteProductController().deactivate,
+);
+
 router.get("/product/client", new GetProductController().handle);
 router.get("/product/:id", new GetProductIdController().handle);
 
 //--Rotas de Clientes---------------------------------------------
+const customerEmailRecovery = new CustomerEmailRecoveryController();
+router.post("/client/:id/email/recovery/request", customerRecoveryLimit, customerEmailRecovery.request);
+router.post("/client/:id/email/recovery/confirm", customerRecoveryLimit, customerEmailRecovery.confirm);
+const customerEmailVerification = new CustomerEmailVerificationController();
+router.post("/client/:id/email/verification/request", customerAccess, customerEmailVerification.request);
+router.post("/client/:id/email/verification/confirm", customerAccess, customerEmailVerification.confirm);
 router.post("/client/:id", new CreateClientController().handle);
 router.get("/client/:id", customerAccess, new GetClientController().handle);
 router.delete(

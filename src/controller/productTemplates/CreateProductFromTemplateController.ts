@@ -1,3 +1,4 @@
+import { ProductInputError, normalizeProductCategory } from "../../service/product/productValidation";
 import type { Request, Response } from "express";
 
 import {
@@ -30,10 +31,15 @@ export class CreateProductFromTemplateController {
       const result = await service.execute({
         restaurantId,
         templateSlug: templateSlug.trim(),
+        category: normalizeProductCategory(req.body?.category),
       });
 
       res.status(201).json(result);
     } catch (error) {
+      if (error instanceof ProductInputError) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
       if (error instanceof ProductTemplateError) {
         res.status(error.statusCode).json({
           error: error.message,

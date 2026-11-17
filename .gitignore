@@ -1,3 +1,21 @@
 .env
 node_modules
 dist
+
+# WhatsApp development-only credentials, context markers and process locks
+.gama-bot-dev/
+.gama-whatsapp/
+
+# Logs
+*.log
+
+# Arquivos temporários
+--noEmit
+
+# Credenciais e arquivos locais
+.env.*
+!.env.example
+
+# WhatsApp
+auth_info_baileys/
+auth_info_sessoes/

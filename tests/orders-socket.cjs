@@ -176,3 +176,32 @@ test('authorization and tenant routing work without network access', async () =>
     a.socket.disconnect(); b.socket.disconnect();
   }
 });
+
+test('HTTP bootstrap configures the authenticated orders namespace exactly once', () => {
+  const app = { use() {} };
+  const express = Object.assign(() => app, { json: () => () => {}, static: () => () => {} });
+  const calls = { orders: 0, chat: 0, instance: 0, listen: 0 };
+  let socketServer;
+  class FakeSocketServer { constructor() { socketServer = this; } }
+  const mocks = {
+    'dotenv/config': {}, express, cors: () => () => {}, path: require('node:path'),
+    './routes': { router: () => {}, emailRoutes: () => {} },
+    http: { createServer: () => ({ listen: () => { calls.listen++; } }) },
+    'socket.io': { Server: FakeSocketServer },
+    '@socket.io/redis-adapter': { createAdapter: () => assert.fail('No Redis in isolated bootstrap') },
+    redis: { createClient: () => assert.fail('No Redis in isolated bootstrap') },
+    './socket/chat': { configureChatSocket: io => { assert.equal(io, socketServer); calls.chat++; } },
+    './socket/orders': { configureOrdersSocket: io => { assert.equal(io, socketServer); calls.orders++; } },
+    './socket/socketInstance': { setSocketInstance: io => { assert.equal(io, socketServer); calls.instance++; } },
+  };
+  const exports = {};
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/server.ts', 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2020 },
+  }).outputText, {
+    exports, __dirname: '/isolated/src', process: { env: {} },
+    require: name => { assert.ok(name in mocks, name); return mocks[name]; },
+    console: { log() {}, warn() {}, error() {} },
+  });
+  assert.deepEqual(calls, { orders: 1, chat: 1, instance: 1, listen: 1 });
+  assert.equal(exports.io, socketServer);
+});

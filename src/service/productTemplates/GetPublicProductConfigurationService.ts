@@ -13,8 +13,10 @@ export class GetPublicProductConfigurationService {
         restaurant_id,
         name,
         description,
+        category,
         price,
-        image_url
+        image_url,
+        EXISTS (SELECT 1 FROM public.product_variants v WHERE v.product_id = products.id) AS has_variants
       FROM public.products
       WHERE id = $1
         AND published = TRUE
@@ -83,7 +85,9 @@ export class GetPublicProductConfigurationService {
         min_select,
         max_select
       FROM public.product_variant_group_limits
-      WHERE variant_id IN (
+      WHERE group_id IN (
+        SELECT id FROM public.product_option_groups WHERE product_id = $1
+      ) AND variant_id IN (
         SELECT id
         FROM public.product_variants
         WHERE product_id = $1
