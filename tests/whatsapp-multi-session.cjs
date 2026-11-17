@@ -11,10 +11,10 @@ const A=id(1),B=id(2);
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r;});return{promise,resolve};}
 async function fixture(t){
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'gama-multi-h11-')),hosts=[],managers=[];
- const f={root,hosts,time:Date.now(),enabled:true,unknown:new Set(),legacy:new Set(),failTenant:null,restoreFailures:[]};
+ const f={root,hosts,time:Date.now(),enabled:true,realCheckoutEnabled:true,allowSimulation:false,unknown:new Set(),legacy:new Set(),failTenant:null,restoreFailures:[]};
  const resources={database:{query:()=>assert.fail('Injected owner lookup expected'),end:()=>assert.fail('Pool must remain open')},io:{close:()=>assert.fail('Shared Socket.IO must remain open')}};
  f.makeManager=()=>{
-  const manager=new TenantWhatsAppSessionManager(resources,{root,enabled:()=>f.enabled,now:()=>f.time,ready:async()=>{if(f.ready)await f.ready();},legacyReserved:r=>f.legacy.has(r),ownerExists:async r=>!f.unknown.has(r),restoreFailed:(id,code)=>f.restoreFailures.push({id,code}),
+  const manager=new TenantWhatsAppSessionManager(resources,{root,enabled:()=>f.enabled,realCheckoutEnabled:f.realCheckoutEnabled,allowSimulation:f.allowSimulation,now:()=>f.time,ready:async()=>{if(f.ready)await f.ready();},legacyReserved:r=>f.legacy.has(r),ownerExists:async r=>!f.unknown.has(r),restoreFailed:(id,code)=>f.restoreFailures.push({id,code}),
    hostFactory:(qr,observe)=>{
     const h={qr,observe,stops:0,start:async config=>{h.config=config;if(f.failTenant===config.context.restaurant_id)throw Error('private credentials');h.release=await acquireLocalAuth(config);observe({state:'connecting'});},stop:async()=>{h.stops++;await h.release?.();observe({state:'disconnected'});}};
     hosts.push(h);return h;
@@ -101,8 +101,15 @@ test('invalid or nonexistent owners cannot initialize metadata or workers',async
  const f=await fixture(t);f.unknown.add(A);await assert.rejects(()=>f.manager.connect(A),e=>e.status===403);
  await assert.rejects(()=>f.manager.connect('../../other'),e=>e.status===401);assert.deepEqual(await fs.readdir(f.root),[]);assert.equal(f.hosts.length,0);
 });
-test('real checkout disabled blocks startup without fallback and skips restoration',async t=>{
- const f=await fixture(t);f.enabled=false;await assert.rejects(()=>f.manager.connect(A),e=>e.code==='REAL_CHECKOUT_DISABLED');assert.equal(f.hosts.length,0);assert.deepEqual(await f.manager.restore(),{restored:0,failed:0});
+test('connection disabled blocks startup even when real checkout is enabled',async t=>{
+ const f=await fixture(t);
+ await f.manager.connect(A);
+ await f.manager.stopAll();
+ f.enabled=false;
+ const restarted=f.makeManager();
+ await assert.rejects(()=>restarted.connect(A),e=>e.code==='WHATSAPP_CONNECTION_DISABLED');
+ assert.deepEqual(await restarted.restore(),{restored:0,failed:0});
+ assert.equal(f.hosts.length,1);
 });
 test('legacy integrated worker reserves its restaurant without blocking another tenant',async t=>{
  const f=await fixture(t);f.legacy.add(A);await assert.rejects(()=>f.manager.connect(A),e=>e.code==='LEGACY_WORKER_ACTIVE');await assert.rejects(()=>f.manager.disconnect(A),e=>e.code==='LEGACY_WORKER_ACTIVE');assert.equal((await f.manager.status(A)).status,'legacy_active');await f.manager.connect(B);assert.equal(f.hosts.length,1);
@@ -110,7 +117,7 @@ test('legacy integrated worker reserves its restaurant without blocking another 
 test('default owner lookup checks the authenticated UUID in restaurants with a bound parameter',async t=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'gama-owner-h11-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
  const calls=[],database={query:async(sql,args)=>{calls.push({sql,args});return{rows:args[0]===A?[{id:A}]:[]};}};
- const manager=new TenantWhatsAppSessionManager({database,io:{}},{root,enabled:()=>false,ready:async()=>{}});
+ const manager=new TenantWhatsAppSessionManager({database,io:{}},{root,enabled:()=>false,realCheckoutEnabled:true,ready:async()=>{}});
  assert.equal((await manager.status(A)).restaurant_id,A);await assert.rejects(()=>manager.status(B),e=>e.code==='OWNER_NOT_FOUND');
  assert.deepEqual(calls[0].args,[A]);assert.match(calls[0].sql,/FROM public.restaurants WHERE id = \$1/);assert.deepEqual(await fs.readdir(root),[]);
 });
@@ -135,4 +142,33 @@ test('each restaurant processor uses its own menu/catalog and cart for the same 
   await processor.process(batch('1'),'account-'+index,async(_,content)=>sent.push(content.text));assert.match(sent.at(-1),new RegExp(name));
  }
  assert.deepEqual(catalogCalls,[A,B]);const a=[...menus[0].sessions.values()][0],b=[...menus[1].sessions.values()][0];a.cart.add({productId:id(300),productName:'A',quantity:1,unitPrice:'5.00'});assert.equal(b.cart.isEmpty(),true);
+});
+test('simulation restores the same session and respects legacy reservations and auth locks',async t=>{
+ const f=await fixture(t);
+ f.realCheckoutEnabled=false;f.allowSimulation=true;
+ f.ready=()=>assert.fail('Simulation should not wait for order event transport');
+ const manager=f.makeManager();
+ await manager.connect(A);
+ const original=f.hosts.at(-1);
+ assert.equal(original.config.realCheckoutEnabled,false);
+ original.qr('TEST_QR');
+ assert.equal((await manager.qr(A)).qr,'TEST_QR');
+ const restarted=f.makeManager();
+ await assert.rejects(()=>restarted.connect(A),e=>e.code==='LOCK_PRESENT');
+ await manager.stopAll();
+ f.legacy.add(A);
+ assert.deepEqual(await restarted.restore(),{restored:0,failed:1});
+ assert.deepEqual(f.restoreFailures,[{id:A,code:'LEGACY_WORKER_ACTIVE'}]);
+ f.legacy.delete(A);
+ assert.deepEqual(await restarted.restore(),{restored:1,failed:0});
+ const restored=f.hosts.at(-1);
+ assert.deepEqual(restored.config,original.config);
+ restored.observe({state:'connected'});
+ assert.equal((await restarted.status(A)).status,'connected');
+});
+test('outside development the manager requires real checkout before creating a session',async t=>{
+ const f=await fixture(t);f.realCheckoutEnabled=false;
+ await assert.rejects(()=>f.makeManager().connect(A),e=>e.code==='REAL_CHECKOUT_REQUIRED');
+ assert.equal(f.hosts.length,0);
+ assert.deepEqual(await fs.readdir(f.root),[]);
 });

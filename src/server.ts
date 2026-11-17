@@ -72,7 +72,11 @@ const tenantWhatsAppSessions = new TenantWhatsAppSessionManager(
     root:
       process.env.WHATSAPP_AUTH_ROOT ||
       path.resolve(__dirname, "..", ".gama-whatsapp"),
-    enabled: () => process.env.WHATSAPP_REAL_CHECKOUT_ENABLED === "true",
+    enabled: () => process.env.WHATSAPP_CONNECTION_ENABLED === "true",
+    realCheckoutEnabled: process.env.WHATSAPP_REAL_CHECKOUT_ENABLED === "true",
+    allowSimulation:
+      process.env.NODE_ENV === "development" &&
+      (process.env.WHATSAPP_REAL_CHECKOUT_ENABLED ?? "false") === "false",
     ready: () => socketAdapterReady,
     legacyReserved: (id) => legacyReservedRestaurantId === id,
     restoreFailed: (restaurantId, code) =>

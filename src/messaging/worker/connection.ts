@@ -1,4 +1,5 @@
 import { ConversationMenu } from "../core/conversationMenu";
+import { createAddressGateway } from "../core/customerAddress";
 import type { PersistentWhatsAppCheckout } from "../checkout/whatsappPersistentCheckout";
 import type { WASocket } from "@whiskeysockets/baileys";
 import { loadBaileys } from "../channels/whatsapp/runtime";
@@ -63,8 +64,16 @@ export async function connectLocalWhatsApp(
       return this;
     },
   };
-  const processor = new LocalMessageProcessor(config.context, Date.now(), 10_000,
-    new ConversationMenu(undefined, undefined, undefined, undefined, undefined, undefined, persistentCheckout));
+  const checkout = config.realCheckoutEnabled ? persistentCheckout : undefined;
+  const menu = checkout
+    ? new ConversationMenu(undefined, undefined, undefined, undefined, undefined, undefined, checkout)
+    : new ConversationMenu(undefined, {
+        createInitialForWhatsApp: async () => ({ kind: "schema_unsupported" }),
+      }, {
+        load: (owner) => createAddressGateway().load(owner),
+        save: async () => ({ kind: "unsupported" }),
+      });
+  const processor = new LocalMessageProcessor(config.context, Date.now(), 10_000, menu);
 
   let socket: WASocket | undefined, timer: NodeJS.Timeout | undefined;
 

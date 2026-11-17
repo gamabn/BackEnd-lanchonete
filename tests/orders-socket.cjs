@@ -193,12 +193,18 @@ test('HTTP bootstrap configures the authenticated orders namespace exactly once'
     './socket/chat': { configureChatSocket: io => { assert.equal(io, socketServer); calls.chat++; } },
     './socket/orders': { configureOrdersSocket: io => { assert.equal(io, socketServer); calls.orders++; } },
     './socket/socketInstance': { setSocketInstance: io => { assert.equal(io, socketServer); calls.instance++; } },
+    './database': { pool: {} },
+    './messaging/worker/apiHost': { ApiWhatsAppHost: class {} },
+    './messaging/worker/config': {},
+    './messaging/worker/diagnostics': {},
+    './messaging/worker/tenantSessionManager': { TenantWhatsAppSessionManager: class {} },
+    './messaging/http/whatsappRoutes': { createWhatsAppRouter: () => () => {} },
   };
   const exports = {};
   vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/server.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true, target: ts.ScriptTarget.ES2020 },
   }).outputText, {
-    exports, __dirname: '/isolated/src', process: { env: {} },
+    exports, __dirname: '/isolated/src', process: { env: {}, on() {} },
     require: name => { assert.ok(name in mocks, name); return mocks[name]; },
     console: { log() {}, warn() {}, error() {} },
   });

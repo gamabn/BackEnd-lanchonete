@@ -16,6 +16,8 @@ interface Entry { record: TenantSessionRecord; phase: Phase; host?: Host; qr?: s
 interface Options {
   root: string;
   enabled: () => boolean;
+  realCheckoutEnabled: boolean;
+  allowSimulation?: boolean;
   ready: () => Promise<unknown>;
   legacyReserved?: (restaurantId: string) => boolean;
   ownerExists?: (restaurantId: string) => Promise<boolean>;
@@ -76,7 +78,9 @@ export class TenantWhatsAppSessionManager {
   }
   async connect(restaurantId: string) {
     const id = await this.owner(restaurantId);
-    if (!this.options.enabled()) throw new WhatsAppSessionError(503, "REAL_CHECKOUT_DISABLED");
+    if (!this.options.enabled()) throw new WhatsAppSessionError(503, "WHATSAPP_CONNECTION_DISABLED");
+    if (!this.options.realCheckoutEnabled && !this.options.allowSimulation)
+      throw new WhatsAppSessionError(503, "REAL_CHECKOUT_REQUIRED");
     if (this.options.legacyReserved?.(id)) throw new WhatsAppSessionError(409, "LEGACY_WORKER_ACTIVE");
     return this.serial(id, async () => {
       if (this.closed) throw new WhatsAppSessionError(503, "HOST_STOPPING");
@@ -85,6 +89,7 @@ export class TenantWhatsAppSessionManager {
       if (entry && ["connecting", "connected", "qr_required", "reconnecting"].includes(entry.phase)) return this.view(id, entry);
       if (entry?.host) { await entry.host.stop(); entry.host = undefined; }
       const record = entry?.record ?? await this.store.read(id) ?? { version: 1 as const, restaurantId: id, sessionId: tenantSessionId(id), enabled: true };
+      if (this.options.legacyReserved?.(id)) throw new WhatsAppSessionError(409, "LEGACY_WORKER_ACTIVE");
       entry = { record: { ...record, enabled: true }, phase: "connecting", epoch: (entry?.epoch ?? 0) + 1 };
       this.entries.set(id, entry);
       const owner = entry, epoch = entry.epoch;
@@ -96,14 +101,15 @@ export class TenantWhatsAppSessionManager {
         owner.qr = undefined; owner.expires = undefined;
       };
       try {
-        await this.options.ready();
+        if (this.options.realCheckoutEnabled) await this.options.ready();
         if (this.closed) throw new WhatsAppSessionError(503, "HOST_STOPPING");
         await this.store.save(owner.record);
         if (this.closed) throw new WhatsAppSessionError(503, "HOST_STOPPING");
         const config: LocalBotConfig = { context: { restaurant_id: id, session_id: record.sessionId, channel: "whatsapp" },
-          authRoot: this.store.root, authDir: path.join(this.store.root, id, record.sessionId), realCheckoutEnabled: true };
+          authRoot: this.store.root, authDir: path.join(this.store.root, id, record.sessionId), realCheckoutEnabled: this.options.realCheckoutEnabled };
         owner.host = this.options.hostFactory ? this.options.hostFactory(qr, observe) :
-          new ApiWhatsAppHost(this.resources, qr, () => {}, undefined, observe);
+          new ApiWhatsAppHost(this.resources, qr, () => {}, undefined, observe,
+            this.options.realCheckoutEnabled ? "persistent" : "simulation");
         await owner.host.start(config);
         return this.view(id, owner);
       } catch (error) {

@@ -27,6 +27,7 @@ export class ApiWhatsAppHost {
       prepare: prepareWorkerCheckout, acquire: acquireLocalAuth, connect: connectLocalWhatsApp,
     },
     private readonly observe?: (event: WorkerConnectionEvent) => void,
+    private readonly mode: "persistent" | "simulation" = "persistent",
   ) {}
 
   async start(config: LocalBotConfig): Promise<void> {
@@ -41,11 +42,16 @@ export class ApiWhatsAppHost {
   }
 
   private async open(config: LocalBotConfig): Promise<void> {
-    if (config.realCheckoutEnabled !== true)
-      throw new BotDiagnosticError("configuration", "REAL_CHECKOUT_REQUIRED", "O host da API exige checkout real explicitamente habilitado.");
-    // Preflight before taking the auth lock or loading/connecting Baileys.
-    const checkout = await this.dependencies.prepare(config, async () => this.resources);
-    if (!checkout) throw new BotDiagnosticError("configuration", "REAL_CHECKOUT_REQUIRED", "Checkout persistente obrigatório.");
+    let checkout: Awaited<ReturnType<typeof prepareWorkerCheckout>>;
+    if (this.mode === "persistent") {
+      if (config.realCheckoutEnabled !== true)
+        throw new BotDiagnosticError("configuration", "REAL_CHECKOUT_REQUIRED", "O host da API exige checkout real explicitamente habilitado.");
+      // Preflight before taking the auth lock or loading/connecting Baileys.
+      checkout = await this.dependencies.prepare(config, async () => this.resources);
+      if (!checkout) throw new BotDiagnosticError("configuration", "REAL_CHECKOUT_REQUIRED", "Checkout persistente obrigatório.");
+    } else if (config.realCheckoutEnabled !== false) {
+      throw new BotDiagnosticError("configuration", "SIMULATION_REQUIRES_CHECKOUT_DISABLED", "Desabilite o checkout real para iniciar a simulação.");
+    }
     if (this.stopRequested) return;
     this.release = await this.dependencies.acquire(config);
     try {

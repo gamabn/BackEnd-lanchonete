@@ -67,3 +67,18 @@ test('failed auth release keeps its callback so a later stop can retry',async()=
  await f.host.start(config);await assert.rejects(()=>f.host.stop());
  await tick();await f.host.stop();assert.equal(attempts,2);
 });
+test('explicit simulation skips checkout preflight and retains the auth lock lifecycle',async()=>{
+ const f=fixture(), qr=[];
+ f.deps.connect=async (config,renderQr,_log,_sdk,checkout)=>{
+  assert.equal(checkout,undefined);
+  assert.equal(config.realCheckoutEnabled,false);
+  f.trace.push('connect');renderQr('TEST_QR');return f.worker;
+ };
+ const host=new ApiWhatsAppHost(f.resources,value=>qr.push(value),()=>{},f.deps,undefined,'simulation');
+ await assert.rejects(()=>host.start(config),e=>e.code==='SIMULATION_REQUIRES_CHECKOUT_DISABLED');
+ assert.deepEqual(f.trace,[]);
+ await host.start({realCheckoutEnabled:false});
+ assert.deepEqual(qr,['TEST_QR']);
+ await host.stop();
+ assert.deepEqual(f.trace,['acquire','connect','stop','release']);
+});

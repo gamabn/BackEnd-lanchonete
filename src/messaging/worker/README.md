@@ -138,7 +138,45 @@ e não habilitar checkout real apenas para testar persistência. Teste automatiz
 `node tests/whatsapp-auth-recovery.cjs` usa sockets simulados e arquivos em /tmp;
 importa apenas utilitários do SDK, sem abrir conexão real.
 
-## Host integrado da API — H.7.4
+## Conectar pelo dashboard em desenvolvimento
+
+No backend, rode:
+
+```bash
+NODE_ENV=development WHATSAPP_WORKER_ENABLED=true WHATSAPP_CONNECTION_ENABLED=true \
+  WHATSAPP_REAL_CHECKOUT_ENABLED=false GAMA_BOT_API_HOST_ENABLED=false npm run dev
+```
+
+No diretório `Lanchonete_App`, aponte o Next.js para a API local:
+
+```bash
+NEXT_PUBLIC_API_LOCAL=http://localhost:3333 npm run dev
+```
+
+Entre no dashboard com o restaurante de teste, abra **WhatsApp** e clique em
+**Conectar** para obter o QR. Sessões anteriormente habilitadas são restauradas na
+inicialização. Para restaurar, mantenha o mesmo `WHATSAPP_AUTH_ROOT` (padrão
+`.gama-whatsapp` na raiz do backend). Encerre outros workers que usam a mesma conta
+antes de iniciar o dashboard. Em caso de conflito de lock, siga o
+[procedimento de auditoria](../../../ops/whatsapp-session-audit.md).
+
+O bot simulado usa o WhatsApp real para ler e responder mensagens. Use uma
+conta de teste. A API e o bot ainda consultam dados existentes, como restaurante,
+catálogo, cliente e endereço. Para testar retirada, use um cliente já cadastrado.
+Para testar entrega, use um endereço já cadastrado e aceito pelo fluxo de entrega.
+Na simulação, cadastro e alteração de endereço são bloqueados. A confirmação fica
+em memória, sem gravar pedidos ou intenções de checkout, emitir `newOrder` ou
+processar pagamentos. Baileys grava as credenciais locais e a API grava os
+metadados das sessões locais para permitir restauração.
+
+`WHATSAPP_CONNECTION_ENABLED` assume `false` quando ausente e habilita conexão
+e restauração pelo painel quando vale `true`. As rotas também exigem
+`WHATSAPP_WORKER_ENABLED=true`. O painel só aceita checkout simulado com
+`NODE_ENV=development` e checkout real explicitamente falso ou ausente. Nos
+demais ambientes, o painel exige checkout real explicitamente habilitado e o
+preflight de persistência continua obrigatório.
+
+## Host legado integrado da API — H.7.4
 
 O host `ApiWhatsAppHost` executa Baileys no processo da API e recebe exatamente
 o pool e o Socket.IO já criados em `server.ts`. Não cria servidor HTTP/Socket.IO
@@ -146,17 +184,17 @@ nem usa `local.main`, que altera console/sinais globalmente. O host não encerra
 o pool ou Socket.IO ao parar o worker. A API aguarda o adapter configurado antes
 de iniciar o bot; falhas do bot são diagnosticadas sem derrubar as rotas HTTP.
 
-Inicialização normal da API não inicia WhatsApp. Há duas autorizações explícitas
-de ambiente: `GAMA_BOT_API_HOST_ENABLED=true` e
+O host legado exige `WHATSAPP_WORKER_ENABLED=true`,
+`GAMA_BOT_API_HOST_ENABLED=true` e
 `WHATSAPP_REAL_CHECKOUT_ENABLED=true`, além das variáveis `GAMA_BOT_*` já exigidas.
-O host da API recusa simulação. Valores padrão permanecem desativados.
+O host legado recusa simulação. Valores padrão permanecem desativados.
 
 Comando preparado para um teste controlado futuro, em terminal interativo:
 
 ```bash
 # Configurar externamente GAMA_BOT_ENABLED=true, os IDs e GAMA_BOT_AUTH_DIR.
 # DATABASE_URL deve usar gama_app; não colocar credenciais neste comando.
-WHATSAPP_REAL_CHECKOUT_ENABLED=true npm run dev:bot:integrated
+WHATSAPP_WORKER_ENABLED=true WHATSAPP_REAL_CHECKOUT_ENABLED=true npm run dev:bot:integrated
 ```
 
 O script opta pelo host integrado; não altera .env. Ele inicia API e worker em

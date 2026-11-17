@@ -18,6 +18,20 @@ Conforme o histórico informado do projeto:
 
 ## Etapa atual
 
+### Conexão do dashboard com checkout simulado (2026-11-17)
+
+**Status:** implementada e validada com testes automatizados. H.12 é a última etapa concluída. H.12.1 e H.13 continuam abertas para validação com contas reais. H.14 permanece pendente.
+
+- A conexão e a restauração pelo painel agora exigem `WHATSAPP_CONNECTION_ENABLED=true` além da autorização existente do worker. A flag nova assume `false`. Com `NODE_ENV=development` e checkout real desligado, o gerenciador escolhe o modo simulado. Nos demais ambientes, o host exige checkout persistente e mantém o preflight existente. O host legado integrado continua exigindo checkout real.
+- O modo simulado reutiliza `ORDER_SIMULATED` e bloqueia gravações de clientes e endereços. Não grava pedidos ou intenções, não emite `newOrder` e não processa pagamentos. Consulta dados existentes, responde pelo WhatsApp e mantém credenciais e metadados locais para restauração.
+- A restauração reutiliza IDs e diretórios. A reserva do worker legado é conferida novamente após a leitura do registro da sessão, antes de registrar o host do tenant. Locks de autenticação e conflitos continuam bloqueantes.
+
+**Arquivos no backend:** `src/server.ts`, `src/messaging/worker/{apiHost,connection,tenantSessionManager}.ts`, `src/messaging/worker/README.md`, `tests/{orders-socket,whatsapp-api-bootstrap,whatsapp-api-host,whatsapp-connection-events,whatsapp-multi-session}.cjs` e `PROGRESSO.md`. **Frontend:** `src/app/util/whatsappTypes.ts` e `tests/whatsapp-integration.cjs`.
+
+**Testes executados:** TypeScript passou nos dois repositórios. No backend, dos 57 arquivos sem PostgreSQL, 55 passaram na execução em lote. Os dois restantes passaram separadamente com portas locais autorizadas. O mock de bootstrap do teste Socket.IO estava desatualizado em relação aos imports e handlers já existentes da API e foi atualizado. Conexão simulada, bloqueio de checkout e gravações, conexão desabilitada, conflitos de lock e worker legado e restauração foram cobertos. No frontend, os quatro arquivos de `npm run test:whatsapp` passaram, incluindo conexão e consulta de QR pelo fluxo do painel com Baileys simulado.
+
+**Validação pendente:** pareamento ou restauração com contas reais no dashboard local, incluindo os cenários com duas contas da H.13. Nenhuma sessão ou lock real foi manipulado. Os quatro arquivos de integração com PostgreSQL foram omitidos para não executar migrations. Nenhuma alteração no Neon ou no Render, commit ou deploy.
+
 ### H.13 — Segunda conexão WhatsApp bloqueada (2026-11-17)
 
 #### Retomada — falha na restauração de ambas as sessões (2026-11-17)
@@ -162,12 +176,8 @@ O teste integrado percorre autenticação JWT, roteamento Express, gerenciador r
 
 ### Pendências e retomada
 
-1. Iniciar o backend multi-tenant com a configuração existente de banco, JWT e diretório de sessões:
-   ```bash
-   cd ~/Projeto-Lanchonete/BackEnd-lanchonete
-   GAMA_BOT_API_HOST_ENABLED=false WHATSAPP_REAL_CHECKOUT_ENABLED=true npm run dev
-   ```
-2. Iniciar o frontend em outro terminal com `npm run dev` dentro de `~/Projeto-Lanchonete/Lanchonete_App`.
+1. Iniciar o backend multi-tenant com a configuração existente de banco, JWT e diretório de sessões, usando o [comando de simulação local](src/messaging/worker/README.md#conectar-pelo-dashboard-em-desenvolvimento).
+2. Iniciar o frontend em outro terminal com `NEXT_PUBLIC_API_LOCAL=http://localhost:3333 npm run dev` dentro de `~/Projeto-Lanchonete/Lanchonete_App`.
 3. Autenticar no dashboard e abrir `/dashboard/whatsapp`. Confirmar o estado real, conectar explicitamente, exibir e escanear o QR, aguardar conexão e testar desconexão com confirmação.
 4. Se a falha persistir, registrar a categoria de erro e o status HTTP de `/api/whatsapp/*`, sem registrar JWT, QR ou credenciais. Confirmar a causa real antes de encerrar a etapa.
 5. Registrar o resultado manual e somente então avaliar a conclusão da H.12.1.
