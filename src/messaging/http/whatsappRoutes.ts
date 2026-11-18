@@ -52,7 +52,6 @@ export function createWhatsAppRouter(sessions: Sessions) {
   router.use(whatsappOwnerAuthentication);
 
   // Impede operações WhatsApp quando o worker está desabilitado.
-  // Impede operações WhatsApp quando o worker está desabilitado.
   router.use((req: Request, res: Response, next: NextFunction) => {
     if (process.env.WHATSAPP_WORKER_ENABLED !== "true") {
       return res.status(503).json({
