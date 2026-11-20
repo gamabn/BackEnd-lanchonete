@@ -70,6 +70,8 @@ import { ConfiguredProductCreationController } from "./controller/productTemplat
 import { PrivateTemplateController } from "./controller/privateTemplates/PrivateTemplateController";
 //=============Bairro==============================================
 import { BairroController } from "./controller/bairroController/bairroController";
+//=============================WEB-PUSH=========================
+import { WebPushController } from "./controller/webPushController/salvarWebPushController";
 
 const emailRoutes = Router();
 const router = Router();
@@ -88,6 +90,8 @@ router.put(
   isAuthentication,
   new UpdateStoreTypesController().handle,
 );
+//-----------------------Web-Push------------------
+router.post("/web-push", isAuthentication, new WebPushController().handler);
 
 //--Rotas de User
 router.post("/user", upload.single("file"), new CreateUserController().handle);
@@ -160,16 +164,52 @@ router.delete("/chat/:order_id", chatGuard, new DeleteChatController().handle);
 
 //---Rotas de Produtos-----------------------------------------------------
 const privateTemplates = new PrivateTemplateController();
-router.get("/products/templates/private", isAuthentication, privateTemplates.list);
-router.post("/products/templates/private", isAuthentication, privateTemplates.create);
-router.get("/products/templates/private/:templateId", isAuthentication, privateTemplates.get);
-router.patch("/products/templates/private/:templateId", isAuthentication, privateTemplates.rename);
-router.delete("/products/templates/private/:templateId", isAuthentication, privateTemplates.remove);
-router.post("/products/templates/private/:templateId/versions", isAuthentication, privateTemplates.version);
-router.post("/products/from-private-template", isAuthentication, privateTemplates.copy);
+router.get(
+  "/products/templates/private",
+  isAuthentication,
+  privateTemplates.list,
+);
+router.post(
+  "/products/templates/private",
+  isAuthentication,
+  privateTemplates.create,
+);
+router.get(
+  "/products/templates/private/:templateId",
+  isAuthentication,
+  privateTemplates.get,
+);
+router.patch(
+  "/products/templates/private/:templateId",
+  isAuthentication,
+  privateTemplates.rename,
+);
+router.delete(
+  "/products/templates/private/:templateId",
+  isAuthentication,
+  privateTemplates.remove,
+);
+router.post(
+  "/products/templates/private/:templateId/versions",
+  isAuthentication,
+  privateTemplates.version,
+);
+router.post(
+  "/products/from-private-template",
+  isAuthentication,
+  privateTemplates.copy,
+);
 
-router.post("/products/configured", isAuthentication, new ConfiguredProductCreationController().create);
-router.post("/products/:productId/structure", isAuthentication, new ConfiguredProductCreationController().structure);
+router.post(
+  "/products/configured",
+  isAuthentication,
+  new ConfiguredProductCreationController().create,
+);
+router.post(
+  "/products/:productId/structure",
+  isAuthentication,
+  new ConfiguredProductCreationController().structure,
+);
 
 router.get(
   "/products/templates",
@@ -262,11 +302,27 @@ router.get("/product/:id", new GetProductIdController().handle);
 
 //--Rotas de Clientes---------------------------------------------
 const customerEmailRecovery = new CustomerEmailRecoveryController();
-router.post("/client/:id/email/recovery/request", customerRecoveryLimit, customerEmailRecovery.request);
-router.post("/client/:id/email/recovery/confirm", customerRecoveryLimit, customerEmailRecovery.confirm);
+router.post(
+  "/client/:id/email/recovery/request",
+  customerRecoveryLimit,
+  customerEmailRecovery.request,
+);
+router.post(
+  "/client/:id/email/recovery/confirm",
+  customerRecoveryLimit,
+  customerEmailRecovery.confirm,
+);
 const customerEmailVerification = new CustomerEmailVerificationController();
-router.post("/client/:id/email/verification/request", customerAccess, customerEmailVerification.request);
-router.post("/client/:id/email/verification/confirm", customerAccess, customerEmailVerification.confirm);
+router.post(
+  "/client/:id/email/verification/request",
+  customerAccess,
+  customerEmailVerification.request,
+);
+router.post(
+  "/client/:id/email/verification/confirm",
+  customerAccess,
+  customerEmailVerification.confirm,
+);
 router.post("/client/:id", new CreateClientController().handle);
 router.get("/client/:id", customerAccess, new GetClientController().handle);
 router.delete(
