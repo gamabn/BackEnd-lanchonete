@@ -26,7 +26,7 @@ class SalvarWebPushService {
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (endpoint)
       DO UPDATE SET
-        lanchonete_id = EXCLUDED.barbearia_id,
+        lanchonete_id = EXCLUDED.lanchonete_id,
         p256dh = EXCLUDED.p256dh,
         auth = EXCLUDED.auth
       RETURNING id, lanchonete_id, created_at
