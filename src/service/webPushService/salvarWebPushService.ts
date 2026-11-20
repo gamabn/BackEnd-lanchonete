@@ -18,7 +18,7 @@ class SalvarWebPushService {
     const result = await pool.query(
       `
       INSERT INTO push_subscriptions (
-        barbearia_id,
+        lanchonete_id,
         endpoint,
         p256dh,
         auth
