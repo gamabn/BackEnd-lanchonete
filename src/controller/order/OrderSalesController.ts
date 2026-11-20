@@ -27,13 +27,20 @@ class OrderSalesController {
 
         if (result) {
           const webPushService = new EnviarWebPushService();
+          //const name = result.fullOrder.customer.name;
+          // const price = result.order.total_price;
           const name = result.fullOrder.customer.name;
-          const price = result.order.total_price;
+          const price = Number(result.order.total_price);
+
+          const valorFormatado = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(price);
 
           const delivery = await webPushService.handle({
             lanchonete_id: result.order.restaurant_id,
-            titulo: "Novo pedido",
-            mensagem: `${name} - ${price}`,
+            titulo: "Novo pedido recebido!",
+            mensagem: `${name} fez um pedido. Total: ${valorFormatado}`,
             url: "/dashboard",
           });
           console.log("✅ Resultado Web Push:", delivery);
