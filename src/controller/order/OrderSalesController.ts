@@ -28,7 +28,7 @@ class OrderSalesController {
         if (result) {
           const webPushService = new EnviarWebPushService();
           const name = result.fullOrder.customer.name;
-          const price = result.subtotal;
+          const price = result.order.total_price;
 
           const delivery = await webPushService.handle({
             lanchonete_id: result.order.restaurant_id,

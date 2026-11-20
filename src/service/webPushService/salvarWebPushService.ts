@@ -16,20 +16,21 @@ class SalvarWebPushService {
     }
 
     const result = await pool.query(
-      `INSERT INTO push_subscriptions(
-        lanchonete_id,
+      `
+      INSERT INTO push_subscriptions (
+        barbearia_id,
         endpoint,
         p256dh,
         auth
-        )
-        VALUES ($1,$2,$3,$4)
-        ON CONFLICT (endpoint)
-        DO UPDATE SET
-        lanchonete_id = EXCLUDED.lanchonete_id,
+      )
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (endpoint)
+      DO UPDATE SET
+        lanchonete_id = EXCLUDED.barbearia_id,
         p256dh = EXCLUDED.p256dh,
         auth = EXCLUDED.auth
-        RETURNING id, lanchonete_id, created_at
-        `,
+      RETURNING id, lanchonete_id, created_at
+      `,
       [lanchonete_id, endpoint, keys.p256dh, keys.auth],
     );
 
