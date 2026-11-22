@@ -292,6 +292,12 @@ router.delete(
 );
 
 router.patch(
+  "/produto/:productId/active",
+  isAuthentication,
+  new DeleteProductController().active,
+);
+
+router.patch(
   "/products/:productId/deactivate",
   isAuthentication,
   new DeleteProductController().deactivate,
