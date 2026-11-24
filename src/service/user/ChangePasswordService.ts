@@ -1,17 +1,19 @@
-import { v4 as uuidv4 } from 'uuid';
-import nodemailer from 'nodemailer';
-import { pool } from '../../database'; // sua conexão
+import { v4 as uuidv4 } from "uuid";
+import nodemailer from "nodemailer";
+import { pool } from "../../database"; // sua conexão
 
 interface ChangePasswordRequest {
   email: string;
 }
 
 class ChangePasswordService {
-
-  async execute({ email }: ChangePasswordRequest ) {
-    const user = await pool.query('SELECT * FROM restaurants WHERE email = $1', [email]);
+  async execute({ email }: ChangePasswordRequest) {
+    const user = await pool.query(
+      "SELECT * FROM restaurants WHERE email = $1",
+      [email],
+    );
     if (user.rows.length === 0) {
-       throw new Error('Email incorreto')
+      throw new Error("Email incorreto");
     }
 
     const token = uuidv4();
@@ -25,37 +27,36 @@ class ChangePasswordService {
        DO UPDATE SET 
          token = EXCLUDED.token, 
          expires_at = EXCLUDED.expires_at;`,
-      [email, token, expires]
+      [email, token, expires],
     );
 
     // Enviar e-mail com o link
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // ou outro (Mailtrap, SendGrid, etc.)
+      service: "gmail", // ou outro (Mailtrap, SendGrid, etc.)
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
-   // const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`; // frontend
-//const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-//const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
-const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    //const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    const resetLink = `https://lanchonete-app-eta.vercel.app//reset-password?token=${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER, // importante definir o remetente
-      to: email,
-      subject: 'Redefinição de senha',
-      html: `<p>Clique no link para redefinir sua senha:</p><a href="${resetLink}">${resetLink}</a>`
-        }).then(info => {
-          console.log("E-mail enviado:", info.response);
-        }).catch(err => {
-          console.error("Erro ao enviar e-mail:", err);
-        });
-        return email
-    }
-  }  
+    await transporter
+      .sendMail({
+        from: process.env.EMAIL_USER, // importante definir o remetente//
+        to: email,
+        subject: "Redefinição de senha",
+        html: `<p>Clique no link para redefinir sua senha:</p><a href="${resetLink}">${resetLink}</a>`,
+      })
+      .then((info) => {
+        console.log("E-mail enviado:", info.response);
+      })
+      .catch((err) => {
+        console.error("Erro ao enviar e-mail:", err);
+      });
+    return email;
+  }
+}
 
- 
-
-export { ChangePasswordService }
+export { ChangePasswordService };
