@@ -76,7 +76,7 @@ import { WebPushController } from "./controller/webPushController/salvarWebPushC
 //=========Pagamentos=======================================
 import { CreateCustomerController } from "./controller/stripe/createCustomerController";
 import { verifySubscription } from "./middlewares/verifySubscription";
-import { WebhookStripeController } from "./controller/stripe/webhookStripeController";
+//import { WebhookStripeController } from "./controller/stripe/webhookStripeController";
 
 const emailRoutes = Router();
 const router = Router();
@@ -90,7 +90,7 @@ router.post(
   isAuthentication,
   new CreateCustomerController().handle,
 );
-router.post("/webhook", new WebhookStripeController().handle);
+//router.post("/webhook", new WebhookStripeController().handle);
 
 //-----------------------Tipos de estabelecimentos-------------------------------
 router.get("/restaurant-types", new GetRestaurantTypesController().handle);

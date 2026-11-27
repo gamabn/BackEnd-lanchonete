@@ -89,7 +89,7 @@ const tenantWhatsAppSessions = new TenantWhatsAppSessionManager(
 //==============================================
 // WEBHOOK STRIPE - precisa receber o corpo original
 app.post(
-  "/stripe/webhook",
+  "/webhook",
   express.raw({ type: "application/json" }),
   new WebhookStripeController().handle,
 );
