@@ -23,6 +23,7 @@ import {
 } from "./messaging/worker/diagnostics";
 import { TenantWhatsAppSessionManager } from "./messaging/worker/tenantSessionManager";
 import { createWhatsAppRouter } from "./messaging/http/whatsappRoutes";
+import { WebhookStripeController } from "./controller/stripe/webhookStripeController";
 
 const app = express();
 const server = createServer(app);
@@ -86,7 +87,16 @@ const tenantWhatsAppSessions = new TenantWhatsAppSessionManager(
   },
 );
 //==============================================
+// WEBHOOK STRIPE - precisa receber o corpo original
+app.post(
+  "/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  new WebhookStripeController().handle,
+);
+
+//==============================================
 app.use(express.json());
+
 app.use(
   cors({
     origin: "*",

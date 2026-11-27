@@ -39,8 +39,8 @@ class ChangePasswordService {
       },
     });
 
-    //const resetLink = `http://localhost:3000/reset-password?token=${token}`;
-    const resetLink = `https://lanchonete-app-eta.vercel.app//reset-password?token=${token}`;
+    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    //const resetLink = `https://lanchonete-app-eta.vercel.app//reset-password?token=${token}`;
 
     await transporter
       .sendMail({

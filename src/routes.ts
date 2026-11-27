@@ -73,11 +73,24 @@ import { BairroController } from "./controller/bairroController/bairroController
 //=============================WEB-PUSH=========================
 import { WebPushController } from "./controller/webPushController/salvarWebPushController";
 
+//=========Pagamentos=======================================
+import { CreateCustomerController } from "./controller/stripe/createCustomerController";
+import { verifySubscription } from "./middlewares/verifySubscription";
+import { WebhookStripeController } from "./controller/stripe/webhookStripeController";
+
 const emailRoutes = Router();
 const router = Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 router.post("/orders/socket-ticket", isAuthentication, createOrdersTicket);
+
+//-----------------------------Pagamentos-----------------------------
+router.post(
+  "/payment",
+  isAuthentication,
+  new CreateCustomerController().handle,
+);
+router.post("/webhook", new WebhookStripeController().handle);
 
 //-----------------------Tipos de estabelecimentos-------------------------------
 router.get("/restaurant-types", new GetRestaurantTypesController().handle);
@@ -98,7 +111,15 @@ router.post("/user", upload.single("file"), new CreateUserController().handle);
 router.post("/auth", new AuthStoreController().handle);
 router.get("/user/:id", new GetIdStoreController().handle);
 router.get("/user", new GetStoreController().handle);
-router.get("/me", isAuthentication, new DetailStoreController().handle);
+
+router.get(
+  "/me",
+  isAuthentication,
+  verifySubscription,
+
+  new DetailStoreController().handle,
+);
+
 router.put("/user/edit", isAuthentication, new EditStoreController().handle);
 router.put(
   "/user/image/:id",
